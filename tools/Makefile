@@ -10,8 +10,8 @@ default: tools
 tools: async-profiler avx-turbo cpuid dmidecode ethtool fio ipmitool lshw lspci msr-tools pcm spectre-meltdown-checker sshpass stackcollapse-perf stress-ng sysstat tsc turbostat
 	mkdir -p bin
 	cp -R async-profiler bin/
-	cp avx-turbo/avx-turbo bin/
-	cp cpuid/cpuid bin/
+	#cp avx-turbo/avx-turbo bin/
+	#cp cpuid/cpuid bin/
 	cp dmidecode/dmidecode bin/
 	cp ethtool/ethtool bin/
 	cp fio/fio bin/
@@ -22,8 +22,8 @@ tools: async-profiler avx-turbo cpuid dmidecode ethtool fio ipmitool lshw lspci 
 	cp lspci/pci.ids.gz bin/
 	cp msr-tools/rdmsr bin/
 	cp msr-tools/wrmsr bin/
-	cp pcm/build/bin/pcm-tpmi bin/
-	cp pcm/scripts/bhs-power-mode.sh bin/
+	#cp pcm/build/bin/pcm-tpmi bin/
+	#cp pcm/scripts/bhs-power-mode.sh bin/
 	cp spectre-meltdown-checker/spectre-meltdown-checker.sh bin/
 	cp sshpass/sshpass bin/
 	cp stress-ng/stress-ng bin/
@@ -32,40 +32,44 @@ tools: async-profiler avx-turbo cpuid dmidecode ethtool fio ipmitool lshw lspci 
 	cp sysstat/sar bin/
 	cp sysstat/sadc bin/
 	cp tsc/tsc bin/
-	cp linux_turbostat/tools/power/x86/turbostat/turbostat bin/
-	-cd bin && strip --strip-unneeded *
+	#cp linux_turbostat/tools/power/x86/turbostat/turbostat bin/
+	#cd bin && strip --strip-unneeded *
 
 ASYNC_PROFILER_VERSION := "4.0"
 async-profiler:
 ifeq ("$(wildcard async-profiler)","")
 ifeq ("$(wildcard async-profiler-$(ASYNC_PROFILER_VERSION)-linux-x64.tar.gz)","")
-	wget https://github.com/jvm-profiling-tools/async-profiler/releases/download/v$(ASYNC_PROFILER_VERSION)/async-profiler-$(ASYNC_PROFILER_VERSION)-linux-x64.tar.gz
+	#wget https://github.com/jvm-profiling-tools/async-profiler/releases/download/v$(ASYNC_PROFILER_VERSION)/async-profiler-$(ASYNC_PROFILER_VERSION)-linux-x64.tar.gz
+	wget https://github.com/jvm-profiling-tools/async-profiler/releases/download/v$(ASYNC_PROFILER_VERSION)/async-profiler-$(ASYNC_PROFILER_VERSION)-linux-arm64.tar.gz
 endif
-	tar -xf async-profiler-$(ASYNC_PROFILER_VERSION)-linux-x64.tar.gz && mv async-profiler-$(ASYNC_PROFILER_VERSION)-linux-x64 async-profiler
+	#tar -xf async-profiler-$(ASYNC_PROFILER_VERSION)-linux-x64.tar.gz && mv async-profiler-$(ASYNC_PROFILER_VERSION)-linux-x64 async-profiler
+	tar -xf async-profiler-$(ASYNC_PROFILER_VERSION)-linux-arm64.tar.gz && mv async-profiler-$(ASYNC_PROFILER_VERSION)-linux-arm64 async-profiler
 endif
 
-AVX_TURBO_VERSION := "threadcpuid"
-avx-turbo:
-ifeq ("$(wildcard avx-turbo)","")
-	git clone https://github.com/harp-intel/avx-turbo.git
-else
-	cd avx-turbo && git checkout master && git pull
-endif
-	cd avx-turbo && git checkout $(AVX_TURBO_VERSION) && git pull
-	cd avx-turbo && make
+#AVX_TURBO_VERSION := "threadcpuid"
+#avx-turbo:
+#ifeq ("$(wildcard avx-turbo)","")
+#	git clone https://github.com/harp-intel/avx-turbo.git
+#else
+#	cd avx-turbo && git checkout master && git pull
+#endif
+#	cd avx-turbo && git checkout $(AVX_TURBO_VERSION) && git pull
+#	cd avx-turbo && make
 
 # if you change the version, check the sed hacks below
-CPUID_VERSION := "20240409"
-cpuid:
-ifeq ("$(wildcard cpuid)","")
-ifeq ("$(wildcard cpuid-$(CPUID_VERSION).src.tar.gz)","")
-	wget http://www.etallen.com/cpuid/cpuid-$(CPUID_VERSION).src.tar.gz
-endif	
-	tar -xf cpuid-$(CPUID_VERSION).src.tar.gz && mv cpuid-$(CPUID_VERSION)/ cpuid/
-endif	
+#CPUID_VERSION := "20240409"
+#cpuid:
+#ifeq ("$(wildcard cpuid)","")
+#ifeq ("$(wildcard cpuid-$(CPUID_VERSION).src.tar.gz)","")
+#	wget http://www.etallen.com/cpuid/cpuid-$(CPUID_VERSION).src.tar.gz
+#endif	
+#	tar -xf cpuid-$(CPUID_VERSION).src.tar.gz && mv cpuid-$(CPUID_VERSION)/ cpuid/
+#endif	
 	# gcc 4.8 doesn't support -Wimplicit-fallthrough option
-	cd cpuid && sed -i s/"-Wimplicit-fallthrough"/""/ Makefile
-	cd cpuid && make
+#	cd cpuid && sed -i s/"-Wimplicit-fallthrough"/""/ Makefile
+#	cd cpuid && make -j20
+
+
 
 DMIDECODE_VERSION := "dmidecode-3-5"
 dmidecode:
@@ -75,7 +79,7 @@ else
 	cd dmidecode && git checkout master && git pull
 endif
 	cd dmidecode && git checkout $(DMIDECODE_VERSION)
-	cd dmidecode && make
+	cd dmidecode && make -j20
 
 ETHTOOL_VERSION := "v6.5"
 ethtool:
@@ -88,7 +92,7 @@ endif
 ifeq ("$(wildcard ethtool/Makefile)","")
 	cd ethtool && ./autogen.sh && ./configure enable_netlink=no
 endif
-	cd ethtool && make
+	cd ethtool && make -j20
 
 FIO_VERSION := "fio-3.38"
 fio:
@@ -101,7 +105,7 @@ endif
 ifeq ("$(wildcard fio/config.log)","")
 	cd fio && ./configure --build-static --disable-native
 endif
-	cd fio && make
+	cd fio && make -j20
 
 IPMITOOL_VERSION := "IPMITOOL_1_8_19"
 ipmitool:
@@ -114,7 +118,7 @@ ifeq ("$(wildcard ipmitool/Makefile)","")
 	sed -i "s#x\$$xenable_ipmishell#xno#" ipmitool/configure.ac
 	cd ipmitool && ./bootstrap && LDFLAGS=-static ./configure
 endif
-	cd ipmitool && make
+	cd ipmitool && make -j20
 	cd ipmitool/src && ../libtool --silent --tag=CC --mode=link gcc -fno-strict-aliasing -Wreturn-type -all-static -o ipmitool.static ipmitool.o ipmishell.o ../lib/libipmitool.la plugins/libintf.la
 
 LSHW_VERSION := "B.02.19"
@@ -125,7 +129,7 @@ else
 	cd lshw && git checkout master && git pull
 endif
 	cd lshw && git checkout $(LSHW_VERSION)
-	cd lshw/src && make static
+	cd lshw/src && make static -j20
 
 LSPCI_VERSION := "v3.13.0"
 lspci:
@@ -135,7 +139,7 @@ else
 	cd lspci && git checkout master && git pull
 endif
 	cd lspci && git checkout $(LSPCI_VERSION)
-	cd lspci && make
+	cd lspci && make -j20
 	cd lspci && ./update-pciids.sh
 	cd lspci && gzip -c pci.ids > pci.ids.gz
 
@@ -147,25 +151,25 @@ else
 	cd msr-tools && git checkout master && git pull
 endif
 	cd msr-tools && git checkout $(MSR_TOOLS_VERSION) && git pull
-	cd msr-tools && ./autogen.sh && make
+	cd msr-tools && ./autogen.sh && make -j20
 
-PCM_VERSION := "202502"
-pcm:
-ifeq ("$(wildcard pcm)","")
-	git clone --recursive https://github.com/intel/pcm.git
-else
-	cd pcm && git checkout master && git pull
-endif
-	cd pcm && git checkout $(PCM_VERSION)
-	mkdir -p pcm/build
-	cd pcm/build &&	cmake -DNO_ASAN=1 ..
-	cd pcm/build && cmake --build .
+#PCM_VERSION := "202502"
+#pcm:
+#ifeq ("$(wildcard pcm)","")
+#	git clone --recursive https://github.com/intel/pcm.git
+#else
+#	cd pcm && git checkout master && git pull
+#endif
+#	cd pcm && git checkout $(PCM_VERSION)
+#	mkdir -p pcm/build
+#	cd pcm/build &&	cmake -DNO_ASAN=1 ..
+#	cd pcm/build && cmake --build .
 
 PERF_VERSION := "6.8.12"
 perf:
 	wget https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-$(PERF_VERSION).tar.xz
 	tar -xf linux-$(PERF_VERSION).tar.xz && mv linux-$(PERF_VERSION)/ linux_perf/
-	cd linux_perf/tools/perf && make LDFLAGS="-static --static" BUILD_BPF_SKEL=1 NO_JVMTI=1
+	cd linux_perf/tools/perf && make -j20 LDFLAGS="-static --static" BUILD_BPF_SKEL=1 NO_JVMTI=1
 	mkdir -p bin
 	cp linux_perf/tools/perf/perf bin/
 	-strip --strip-unneeded bin/perf || true
@@ -203,10 +207,11 @@ ifeq ("$(wildcard sshpass)","")
 	rm sshpass-$(SSHPASS_VERSION).tar.gz
 	cd sshpass && ./configure
 endif
-	cd sshpass && make
+	cd sshpass && make -j20 
 
 stackcollapse-perf:
-	cd stackcollapse-perf && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build
+	#cd stackcollapse-perf && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build
+	cd stackcollapse-perf && CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build
 
 STRESS_NG_VERSION := "V0.13.08"
 stress-ng:
@@ -216,7 +221,7 @@ else
 	cd stress-ng && git checkout master && git pull
 endif
 	cd stress-ng && git checkout $(STRESS_NG_VERSION)
-	cd stress-ng && STATIC=1 make
+	cd stress-ng && STATIC=1 make -j20
 
 SYSSTAT_VERSION := "v12.7.6"
 sysstat:
@@ -229,39 +234,41 @@ endif
 ifeq ("$(wildcard sysstat/Makefile)","")
 	cd sysstat && ./configure
 endif
-	cd sysstat && make
+	cd sysstat && make -j20
 
 tsc:
-	cd tsc && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build
+	#cd tsc && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build
+	cd tsc && CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build
 
-TURBOSTAT_VERSION := "6.9.12"
-turbostat:
-	wget https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-$(TURBOSTAT_VERSION).tar.xz
-	tar -xf linux-$(TURBOSTAT_VERSION).tar.xz && mv linux-$(TURBOSTAT_VERSION)/ linux_turbostat/
-	sed -i '/_Static_assert/d' linux_turbostat/tools/power/x86/turbostat/turbostat.c
-	cd linux_turbostat/tools/power/x86/turbostat && make
+#TURBOSTAT_VERSION := "6.9.12"
+#turbostat:
+#	wget https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-$(TURBOSTAT_VERSION).tar.xz
+#	tar -xf linux-$(TURBOSTAT_VERSION).tar.xz && mv linux-$(TURBOSTAT_VERSION)/ linux_turbostat/
+#	sed -i '/_Static_assert/d' linux_turbostat/tools/power/x86/turbostat/turbostat.c
+#	cd linux_turbostat/tools/power/x86/turbostat && make -j20
 
 reset:
 	cd async-profiler
-	cd cpuid && make clean
+	#cd cpuid && make clean
 	cd dmidecode && git clean -fdx && git reset --hard
 	cd ethtool && git clean -fdx && git reset --hard
 	cd fio && git clean -fdx && git reset --hard
 	cd ipmitool && git clean -fdx && git reset --hard
 	cd lshw && git clean -fdx && git reset --hard
 	cd lspci && git clean -fdx && git reset --hard
-	cd pcm && git clean -fdx && git reset --hard
+	#cd pcm && git clean -fdx && git reset --hard
 	cd msr-tools && git clean -fdx && git reset --hard
 	cd spectre-meltdown-checker
 	cd sshpass && make clean
 	cd stress-ng && git clean -fdx && git reset --hard
 	cd sysstat && git clean -fdx && git reset --hard
 	cd tsc && rm -f tsc
-	cd linux_turbostat/tools/power/x86/turbostat && make clean
+	#cd linux_turbostat/tools/power/x86/turbostat && make clean
 
 # not used in build but required in oss archive file because some of the tools are statically linked
 glibc-2.19.tar.bz2:
-	wget http://ftp.gnu.org/gnu/glibc/glibc-2.19.tar.bz2
+	#wget http://ftp.gnu.org/gnu/glibc/glibc-2.19.tar.bz2
+	wget https://mirror.us-midwest-1.nexcess.net/gnu/glibc/glibc-2.19.tar.bz2
 zlib.tar.gz:
 	wget https://github.com/madler/zlib/archive/refs/heads/master.tar.gz -O zlib.tar.gz
 libcrypt.tar.gz:
@@ -269,5 +276,5 @@ libcrypt.tar.gz:
 libs: glibc-2.19.tar.bz2 zlib.tar.gz libcrypt.tar.gz
 
 oss-source: reset libs
-	tar --exclude-vcs -czf oss_source.tgz async-profiler/ cpuid/ dmidecode/ ethtool/ fio/ ipmitool/ lshw/ lspci/ msr-tools/ pcm/ spectre-meltdown-checker/ sshpass/ stress-ng/ sysstat/ linux_turbostat/tools/power/x86/turbostat glibc-2.19.tar.bz2 zlib.tar.gz libcrypt.tar.gz
+	tar --exclude-vcs -czf oss_source.tgz async-profiler/ dmidecode/ ethtool/ fio/ ipmitool/ lshw/ lspci/ msr-tools/ spectre-meltdown-checker/ sshpass/ stress-ng/ sysstat/ glibc-2.19.tar.bz2 zlib.tar.gz libcrypt.tar.gz
 	md5sum oss_source.tgz > oss_source.tgz.md5

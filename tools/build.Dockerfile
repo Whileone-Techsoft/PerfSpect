@@ -16,7 +16,7 @@ ENV https_proxy=${https_proxy}
 ENV LANG=en_US.UTF-8
 ARG DEBIAN_FRONTEND=noninteractive
 ARG GO_VERSION=1.24.3
-RUN apt-get update && apt-get install -y apt-utils locales wget curl git netcat-openbsd software-properties-common jq zip unzip
+RUN apt-get update && apt-get install -y apt-utils locales wget curl git netcat-openbsd software-properties-common jq zip unzip docbook-to-man automake autoconf
 RUN locale-gen en_US.UTF-8 &&  echo "LANG=en_US.UTF-8" > /etc/default/locale
 RUN for i in {1..5}; do \
         add-apt-repository ppa:git-core/ppa -y && break; \
@@ -28,18 +28,21 @@ RUN for i in {1..5}; do \
         libreadline-dev default-jre default-jdk cmake flex bison libssl-dev && break; \
         echo "Retrying in 5 seconds... ($i/5)" && sleep 5; \
     done
-ENV JAVA_HOME=/usr/lib/jvm/java-1.11.0-openjdk-amd64
+#ENV JAVA_HOME=/usr/lib/jvm/java-1.11.0-openjdk-amd64
 # need golang to build go tools
-RUN rm -rf /usr/local/go && wget -qO- https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz | tar -C /usr/local -xz
+RUN apt install openjdk-11-jdk -y
+#RUN rm -rf /usr/local/go && wget -qO- https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz | tar -C /usr/local -xz
+RUN rm -rf /usr/local/go && wget -qO- https://go.dev/dl/go${GO_VERSION}.linux-arm64.tar.gz | tar -C /usr/local -xz
+
 ENV PATH="${PATH}:/usr/local/go/bin"
 # need up-to-date zlib (used by stress-ng static build) to fix security vulnerabilities
 RUN git clone https://github.com/madler/zlib.git && cd zlib && ./configure && make install
-RUN cp /usr/local/lib/libz.a /usr/lib/x86_64-linux-gnu/libz.a
+RUN cp /usr/local/lib/libz.a /usr/lib/libz.a
 # Build third-party components
 RUN mkdir workdir
 ADD . /workdir
 WORKDIR /workdir
-RUN make tools && make oss-source
+RUN make -j48 tools && make -j48 oss-source
 
 FROM ubuntu:22.04 AS perf-builder
 # Define default values for proxy environment variables
@@ -70,8 +73,8 @@ ENV PATH="${PATH}:/usr/lib/llvm-13/bin"
 RUN mkdir workdir
 ADD . /workdir
 WORKDIR /workdir
-RUN make perf
-RUN make processwatch
+RUN make perf -j48
+RUN make processwatch -j48
 
 # --- aarch64 perf build stage ---
 FROM ubuntu:22.04 AS perf-builder-arm64
@@ -84,17 +87,17 @@ ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y apt-utils locales wget curl git netcat-openbsd \
     software-properties-common jq zip unzip gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
     make pkgconf flex bison libssl-dev libelf-dev libdw-dev libiberty-dev libzstd-dev \
-    python3 python3-dev libtraceevent-dev
+    python3 python3-dev libtraceevent-dev automake autoconf
 RUN locale-gen en_US.UTF-8 &&  echo "LANG=en_US.UTF-8" > /etc/default/locale
 RUN mkdir workdir
 ADD . /workdir
 WORKDIR /workdir
 # Build perf for aarch64
-RUN make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- NO_LIBELF=1 NO_LIBTRACEEVENT=1 perf
+RUN make -j48 ARCH=arm64 NO_LIBELF=1 NO_LIBTRACEEVENT=1 perf
 
 FROM scratch AS output
 COPY --from=builder workdir/oss_source.tgz /
 COPY --from=builder workdir/oss_source.tgz.md5 /
-COPY --from=builder workdir/bin /bin/x86_64
-COPY --from=perf-builder workdir/bin /bin/x86_64
+COPY --from=builder workdir/bin /bin/
+COPY --from=perf-builder workdir/bin /bin/
 COPY --from=perf-builder-arm64 workdir/bin /bin/aarch64
