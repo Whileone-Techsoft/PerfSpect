@@ -635,6 +635,8 @@ func getNumGPCounters(uarch string) (numGPCounters int, err error) {
 		fallthrough
 	case "Tur":
 		numGPCounters = 5
+	case "Zen":
+		numGPCounters = 6
 	default:
 		err = fmt.Errorf("unsupported uarch: %s", uarch)
 		return

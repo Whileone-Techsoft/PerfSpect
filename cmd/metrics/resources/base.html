@@ -408,6 +408,17 @@
         ]
       }
 
+      const getGraphOptionsForAllMetricsTab = (data = []) => {
+          return {
+            ...base_line,
+            series: [
+              {
+                type: "line",
+                data: data
+              }
+            ]
+          }
+      }
 
       const diffreport = (e) => {
         let reader = new FileReader();
@@ -727,7 +738,14 @@
               <Alert severity="info" sx={{ marginBottom: "24px" }}>
                 TMA metrics are a hierarchy where each sub-metric contains more periods "..." to designate its depth in the tree
               </Alert>
-              <TableContainer component={Paper} sx={{ width: "fit-content" }}>
+              <Box
+                sx={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(2, minmax(200px, 1fr))",
+                      gap: "24px",
+                    }}
+                >
+              <TableContainer component={Paper}>
                 <Table size="small" style={{ tableLayout: 'auto' }}>
                   <TableHead>
                     <TableRow>
@@ -758,22 +776,22 @@
                           </Tooltip>
                           {row[0]}
                         </TableCell>
-                        <TableCell sx={{ fontFamily: 'Monospace' }} align="right">
+                        <TableCell sx={{ fontFamily: 'Monospace' }}>
                           {Number(row[1]).toFixed(4)}
                         </TableCell>
-                        <TableCell sx={{ fontFamily: 'Monospace' }} align="right">
+                        <TableCell sx={{ fontFamily: 'Monospace' }}>
                           {Number(row[2]).toFixed(4)}
                         </TableCell>
-                        <TableCell sx={{ fontFamily: 'Monospace' }} align="right">
+                        <TableCell sx={{ fontFamily: 'Monospace' }}>
                           {Number(row[3]).toFixed(4)}
                         </TableCell>
-                        <TableCell sx={{ fontFamily: 'Monospace' }} align="right">
+                        <TableCell sx={{ fontFamily: 'Monospace' }}>
                           {Number(row[4]).toFixed(4)}
                         </TableCell>
-                        {row.hasOwnProperty("other") && <TableCell sx={{ fontFamily: 'Monospace', fontStyle: 'italic' }} align="right">
+                        {row.hasOwnProperty("other") && <TableCell sx={{ fontFamily: 'Monospace', fontStyle: 'italic' }}>
                           {Number(row["other"]).toFixed(4)}
                         </TableCell>}
-                        {row.hasOwnProperty("other") && <TableCell align="right" sx={{ fontFamily: 'Monospace', backgroundColor: (row.diff > 0 ? "rgba(255,0,0," + (row.diff / maxdiff * .5) + ")" : "rgba(0,0,255," + (row.diff / mindiff * .5) + ")") }}>
+                        {row.hasOwnProperty("other") && <TableCell sx={{ fontFamily: 'Monospace', backgroundColor: (row.diff > 0 ? "rgba(255,0,0," + (row.diff / maxdiff * .5) + ")" : "rgba(0,0,255," + (row.diff / mindiff * .5) + ")") }}>
                           {Math.round(Number(row["diff"]))}%
                         </TableCell>}
                       </TableRow>
@@ -781,6 +799,26 @@
                   </TableBody>
                 </Table>
               </TableContainer>
+              <Box>
+                  {current_metrics.map((metric) => {
+                    return (
+                        <Box>
+                          <Typography variant="h4">
+                            {metric[0] !== undefined && metric[0] !== null
+                              ? metric[0]
+                              : "No metric found"}
+                          </Typography>
+                          <ReactECharts style={{ minHeight: "250px" }} option={getGraphOptionsForAllMetricsTab(
+                              metric.at(-1) !== undefined &&
+                                metric.at(-1) !== null
+                                ? metric.at(-1)
+                                : []
+                            )} />
+                        </Box>
+                    )
+                  })}
+                </Box>
+              </Box>
             </TabPanel>
             <TabPanel
               value={systemTabs}

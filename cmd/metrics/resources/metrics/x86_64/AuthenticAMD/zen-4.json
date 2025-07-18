@@ -1,0 +1,18 @@
+[
+  {
+    "name": "CPI",
+    "expression": "[cpu-cycles] / [instructions]"
+  },
+  {
+    "name": "IPC",
+    "expression": "[instructions] / [cpu-cycles]"
+  },
+  {
+    "name": "package power (watts)",
+    "expression": "[power/energy-pkg/]"
+  },
+  {
+    "name": "Branch Misprediction Ratio",
+    "expression": "[ex_ret_brn_misp] / [ex_ret_brn]"
+  }
+]

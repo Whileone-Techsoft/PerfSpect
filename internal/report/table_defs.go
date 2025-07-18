@@ -117,6 +117,7 @@ const (
 	StorageBenchmarkTableName     = "Storage Benchmark"
 	// telemetry table names
 	CPUUtilizationTelemetryTableName        = "CPU Utilization Telemetry"
+	CPUUtilizationHeatmapTableName 			= "CPU Utilization Telemetry Heatmap"
 	UtilizationCategoriesTelemetryTableName = "Utilization Categories Telemetry"
 	IPCTelemetryTableName                   = "IPC Telemetry"
 	C6TelemetryTableName                    = "C6 Telemetry"
@@ -143,6 +144,7 @@ const (
 const (
 	// telemetry table menu labels
 	CPUUtilizationTelemetryMenuLabel        = "CPU Utilization"
+	CPUUtilizationHeatmapManuLabel			= "CPU Utilization Heatmap"
 	UtilizationCategoriesTelemetryMenuLabel = "Utilization Categories"
 	IPCTelemetryMenuLabel                   = "IPC"
 	C6TelemetryMenuLabel                    = "C6"
@@ -664,6 +666,15 @@ var tableDefinitions = map[string]TableDefinition{
 		},
 		FieldsFunc:            cpuUtilizationTelemetryTableValues,
 		HTMLTableRendererFunc: cpuUtilizationTelemetryTableHTMLRenderer},
+	CPUUtilizationHeatmapTableName: {
+		Name:      CPUUtilizationHeatmapTableName,
+		MenuLabel: CPUUtilizationHeatmapManuLabel,
+		HasRows:   true,
+		ScriptNames: []string{
+			script.MpstatTelemetryScriptName,
+		},
+		FieldsFunc:            cpuUtilizationTelemetryTableValues,
+		HTMLTableRendererFunc: cpuUtilizationHeatmapRenderer},
 	UtilizationCategoriesTelemetryTableName: {
 		Name:      UtilizationCategoriesTelemetryTableName,
 		MenuLabel: UtilizationCategoriesTelemetryMenuLabel,
@@ -2234,6 +2245,8 @@ func utilizationCategoriesTelemetryTableValues(outputs map[string]script.ScriptO
 		{Name: "%idle"},
 	}
 	reStat := regexp.MustCompile(`^(\d\d:\d\d:\d\d)\s+all\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)$`)
+	// Need this regex for AMD X86 Machine, Above regex is original
+	// reStat := regexp.MustCompile(`^(\d{2}:\d{2}:\d{2}\s[AP]M)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)$`)
 	for line := range strings.SplitSeq(outputs[script.MpstatTelemetryScriptName].Stdout, "\n") {
 		match := reStat.FindStringSubmatch(line)
 		if len(match) == 0 {

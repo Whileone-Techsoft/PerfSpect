@@ -71,6 +71,7 @@ var cpuDefinitions = []CPUDefinition{
 	{MicroArchitecture: "Bergamo", Family: "25", Model: "(16[0-9]|17[0-5])", Stepping: "", Architecture: "x86_64", MemoryChannelCount: 12, LogicalThreadCount: 2, CacheWayCount: 0},   // Bergamo, model 160-175
 	{MicroArchitecture: "Turin (Zen 5)", Family: "26", Model: "2", Stepping: "", Architecture: "x86_64", MemoryChannelCount: 12, LogicalThreadCount: 2, CacheWayCount: 0},             // Turin (Zen 5)
 	{MicroArchitecture: "Turin (Zen 5c)", Family: "26", Model: "17", Stepping: "", Architecture: "x86_64", MemoryChannelCount: 12, LogicalThreadCount: 2, CacheWayCount: 0},           // Turin (Zen 5c)
+	{MicroArchitecture: "Zen-4", Family: "25", Model: "97", Stepping: "2", Architecture: "x86_64", MemoryChannelCount: 2, LogicalThreadCount: 16, CacheWayCount: 8}, // AMD Ryzen 7 7700
 
 	// ARM CPUs
 	{MicroArchitecture: "Neoverse N1", Family: "", Model: "1", Stepping: "r3p1", Architecture: "arm64", MemoryChannelCount: 8, LogicalThreadCount: 1, CacheWayCount: 0}, // AWS Graviton 2
