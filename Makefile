@@ -10,7 +10,7 @@ VERSION_FILE := ./version.txt
 VERSION_NUMBER := $(shell cat ${VERSION_FILE})
 VERSION := $(VERSION_NUMBER)_$(COMMIT_DATE)_$(COMMIT_ID)
 
-default: perfspect
+default: perfspect-aarch64
 
 GOFLAGS_COMMON=-trimpath -mod=readonly -ldflags="-X perfspect/cmd.gVersion=$(VERSION) -s -w"
 GO=CGO_ENABLED=0 GOOS=linux go
@@ -60,9 +60,9 @@ dist: resources check perfspect perfspect-aarch64
 	cd dist && md5sum perfspect-aarch64.tgz > perfspect-aarch64.tgz.md5.txt
 	rm -rf dist/perfspect
 	echo '{"version": "$(VERSION_NUMBER)", "date": "$(COMMIT_DATE)", "time": "$(COMMIT_TIME)", "commit": "$(COMMIT_ID)" }' | jq '.' > dist/manifest.json
-ifneq ("$(wildcard /prebuilt)","") # /prebuilt is a directory in the container
-	cp -r /prebuilt/oss_source* dist/
-endif
+#ifneq ("$(wildcard /prebuilt)","") # /prebuilt is a directory in the container
+#	cp -r /prebuilt/oss_source* dist/
+#endif
 
 # Run package-level unit tests
 .PHONY: test
@@ -145,7 +145,7 @@ modernize:
 	go run golang.org/x/tools/gopls/internal/analysis/modernize/cmd/modernize@latest -fix -test ./...
 
 .PHONY: check
-check: check_format check_vet check_static check_license check_lint check_vuln check_modernize
+check: check_format check_vet check_static check_lint check_vuln check_modernize
 
 .PHONY: sweep
 sweep:

@@ -6,7 +6,7 @@
 
 NPROC := $(shell nproc)
 
-default: tools-x86_64
+default: tools-aarch64
 .PHONY: default tools tools-aarch64 tools-x86_64 async-profiler avx-turbo cpuid dmidecode ethtool fio ipmitool lshw lspci msr-tools pcm perf-x86_64 processwatch spectre-meltdown-checker sshpass stackcollapse-perf stress-ng sysstat tsc turbostat
 
 tools-x86_64: async-profiler avx-turbo cpuid dmidecode ethtool fio ipmitool lshw lspci msr-tools pcm spectre-meltdown-checker sshpass stackcollapse-perf stress-ng sysstat tsc turbostat
@@ -38,7 +38,7 @@ tools-x86_64: async-profiler avx-turbo cpuid dmidecode ethtool fio ipmitool lshw
 	cp linux_turbostat/tools/power/x86/turbostat/turbostat bin/x86_64/
 	-cd bin/x86_64 && strip --strip-unneeded *
 
-tools-aarch64: async-profiler-aarch64 dmidecode-aarch64 ethtool-aarch64 fio-aarch64 ipmitool-aarch64 lshw-aarch64 lspci-aarch64 spectre-meltdown-checker sshpass-aarch64 stackcollapse-perf-aarch64 stress-ng-aarch64 sysstat-aarch64 tsc-aarch64
+tools-aarch64: async-profiler-aarch64 dmidecode-aarch64 ethtool-aarch64 fio-aarch64 ipmitool-aarch64 lshw-aarch64 lspci-aarch64 spectre-meltdown-checker sshpass-aarch64 stackcollapse-perf-aarch64 stress-ng-aarch64 sysstat-aarch64 tsc-aarch64 
 	mkdir -p bin/aarch64
 	cp -R async-profiler-aarch64 bin/aarch64/async-profiler
 	cp dmidecode-aarch64/dmidecode bin/aarch64/
@@ -46,7 +46,7 @@ tools-aarch64: async-profiler-aarch64 dmidecode-aarch64 ethtool-aarch64 fio-aarc
 	cp fio-aarch64/fio bin/aarch64/	
 	cp stackcollapse-perf/stackcollapse-perf-aarch64 bin/aarch64/stackcollapse-perf
 	cp ipmitool-aarch64/src/ipmitool.static bin/aarch64/ipmitool
-	cp lshw-aarch64/src/lshw-static bin/aarch64/lshw
+	cp lshw-aarch64/src/lshw bin/aarch64/lshw
 	cp lspci-aarch64/lspci bin/aarch64/
 	cp lspci-aarch64/pci.ids.gz bin/aarch64/
 	cp perf-archive/perf-archive.sh bin/aarch64/perf-archive && chmod +rx bin/aarch64/perf-archive
@@ -124,7 +124,7 @@ else
 	cd dmidecode-aarch64 && git checkout master && git pull
 endif
 	cd dmidecode-aarch64 && git checkout $(DMIDECODE_VERSION)
-	cd dmidecode-aarch64 && CC=aarch64-linux-gnu-gcc make -j$(NPROC)
+	cd dmidecode-aarch64 && CC=gcc make -j$(NPROC)
 
 ELFUTILS_VERSION := "0.186"
 elfutils-aarch64: zlib-aarch64
@@ -184,7 +184,7 @@ else
 endif
 	cd fio-aarch64 && git checkout $(FIO_VERSION)
 ifeq ("$(wildcard fio-aarch64/config.log)","")
-	cd fio-aarch64 && ./configure --build-static --disable-native --cc=aarch64-linux-gnu-gcc
+	cd fio-aarch64 && ./configure --disable-native --cc=gcc
 endif
 	cd fio-aarch64 && make -j$(NPROC)
 
@@ -242,7 +242,7 @@ else
 	cd lshw-aarch64 && git checkout master && git pull
 endif
 	cd lshw-aarch64 && git checkout $(LSHW_VERSION)
-	cd lshw-aarch64/src && STRIP=aarch64-linux-gnu-strip CXX=aarch64-linux-gnu-g++ make static
+	cd lshw-aarch64/src && STRIP=aarch64-linux-gnu-strip CXX=g++ make
 
 LSPCI_VERSION := "v3.13.0"
 lspci:
@@ -292,15 +292,16 @@ endif
 	cd pcm/build &&	cmake -DNO_ASAN=1 ..
 	cd pcm/build && cmake --build .
 
-PERF_VERSION := "6.15.3"
+PERF_VERSION := "6.8.12"
 perf-x86_64:
 	wget https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-$(PERF_VERSION).tar.xz
 	tar -xf linux-$(PERF_VERSION).tar.xz && mv linux-$(PERF_VERSION)/ linux_perf/
-	cd linux_perf/tools/perf && make LLVM_CONFIG="llvm-config --link-static" LDFLAGS="-static --static" BUILD_BPF_SKEL=1 NO_JVMTI=1 BUILD_NONDISTRO=1 LIBUNWIND=1 -j$(NPROC)
+	cd linux_perf/tools/perf && make LDFLAGS="-static --static" BUILD_BPF_SKEL=1 NO_JVMTI=1 -j$(NPROC)
 	mkdir -p bin/x86_64
 	cp linux_perf/tools/perf/perf bin/x86_64/
 	strip --strip-unneeded bin/x86_64/perf
 
+perf-aarch64: PERF_VERSION := "6.15.3"
 perf-aarch64: zlib-aarch64 elfutils-aarch64 libpfm4-aarch64
 ifeq ("$(wildcard perf-aarch64)","")
 	wget -N https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-$(PERF_VERSION).tar.xz
@@ -446,6 +447,20 @@ reset:
 	cd tsc && rm -f tsc
 	cd linux_turbostat/tools/power/x86/turbostat && make clean
 
+reset-aarch64:
+	cd async-profiler-aarch64
+	cd dmidecode-aarch64 && git clean -fdx && git reset --hard
+	cd ethtool-aarch64 && git clean -fdx && git reset --hard
+	cd fio-aarch64 && git clean -fdx && git reset --hard
+	cd ipmitool-aarch64 && git clean -fdx && git reset --hard
+	cd lshw-aarch64 && git clean -fdx && git reset --hard
+	cd lspci-aarch64 && git clean -fdx && git reset --hard
+	cd spectre-meltdown-checker
+	cd sshpass-aarch64 && make clean
+	cd stress-ng-aarch64 && git clean -fdx && git reset --hard
+	cd sysstat-aarch64 && git clean -fdx && git reset --hard
+	cd tsc && rm -f tsc
+
 # not used in build but required in oss archive file because some of the tools are statically linked
 glibc-2.19.tar.bz2:
 	wget http://ftp.gnu.org/gnu/glibc/glibc-2.19.tar.bz2
@@ -457,4 +472,8 @@ libs: glibc-2.19.tar.bz2 zlib.tar.gz libcrypt.tar.gz
 
 oss-source: reset libs
 	tar --exclude-vcs -czf oss_source.tgz async-profiler/ cpuid/ dmidecode/ ethtool/ fio/ ipmitool/ lshw/ lspci/ msr-tools/ perf-archive/ pcm/ spectre-meltdown-checker/ sshpass/ stress-ng/ sysstat/ linux_turbostat/tools/power/x86/turbostat glibc-2.19.tar.bz2 zlib.tar.gz libcrypt.tar.gz
+	md5sum oss_source.tgz > oss_source.tgz.md5
+
+oss-source-aarch64: reset-aarch64 libs
+	tar --exclude-vcs -czf oss_source.tgz async-profiler-aarch64/ dmidecode-aarch64/ ethtool-aarch64/ fio-aarch64/ ipmitool-aarch64/ lshw-aarch64/ lspci-aarch64/ perf-archive/ spectre-meltdown-checker/ sshpass-aarch64/ stress-ng-aarch64/ sysstat-aarch64/ glibc-2.19.tar.bz2 zlib.tar.gz libcrypt.tar.gz
 	md5sum oss_source.tgz > oss_source.tgz.md5
