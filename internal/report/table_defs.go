@@ -117,6 +117,7 @@ const (
 	StorageBenchmarkTableName     = "Storage Benchmark"
 	// telemetry table names
 	CPUUtilizationTelemetryTableName        = "CPU Utilization Telemetry"
+	CPUUtilizationHeatmapTableName		= "CPU Utilization Telemetry Heatmap"
 	UtilizationCategoriesTelemetryTableName = "Utilization Categories Telemetry"
 	IPCTelemetryTableName                   = "IPC Telemetry"
 	C6TelemetryTableName                    = "C6 Telemetry"
@@ -143,6 +144,7 @@ const (
 const (
 	// telemetry table menu labels
 	CPUUtilizationTelemetryMenuLabel        = "CPU Utilization"
+	CPUUtilizationHeatmapMenuLabel		= "CPU Utilization Heatmap"
 	UtilizationCategoriesTelemetryMenuLabel = "Utilization Categories"
 	IPCTelemetryMenuLabel                   = "IPC"
 	C6TelemetryMenuLabel                    = "C6"
@@ -664,6 +666,16 @@ var tableDefinitions = map[string]TableDefinition{
 		},
 		FieldsFunc:            cpuUtilizationTelemetryTableValues,
 		HTMLTableRendererFunc: cpuUtilizationTelemetryTableHTMLRenderer},
+	CPUUtilizationHeatmapTableName: {
+		Name:      CPUUtilizationHeatmapTableName,
+		MenuLabel: CPUUtilizationHeatmapMenuLabel,
+		HasRows:   true,
+		ScriptNames: []string{
+			script.MpstatTelemetryScriptName,
+		},
+		FieldsFunc:            cpuUtilizationTelemetryTableValues,
+		HTMLTableRendererFunc: cpuUtilizationHeatmapRenderer},
+
 	UtilizationCategoriesTelemetryTableName: {
 		Name:      UtilizationCategoriesTelemetryTableName,
 		MenuLabel: UtilizationCategoriesTelemetryMenuLabel,
