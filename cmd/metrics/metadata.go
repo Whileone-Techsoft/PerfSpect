@@ -65,6 +65,58 @@ func LoadMetadata(myTarget target.Target, noRoot bool, noSystemSummary bool, per
 		err = fmt.Errorf("failed to read cpu info: %v", err)
 		return
 	}
+
+	var lscpuInfo []map[string]string
+	lscpuInfo, err = getCPUCountsFromLscpu(myTarget)
+	if err != nil {
+		err = fmt.Errorf("failed to read lscpu info: %v", err)
+	}
+
+	//lscpu
+	// Use the first map from lscpuInfo
+	cpuData := lscpuInfo[0]
+
+	// Core Count (per socket)
+	metadata.CoresPerSocket, err = strconv.Atoi(cpuData["Core(s) per socket"])
+	if err != nil || metadata.CoresPerSocket == 0 {
+		err = fmt.Errorf("failed to retrieve cores per socket: %v", err)
+		return
+	}
+
+	// Socket Count
+	metadata.SocketCount, err = strconv.Atoi(cpuData["Socket(s)"])
+	if err != nil || metadata.SocketCount == 0 {
+		err = fmt.Errorf("failed to retrieve socket count: %v", err)
+		return
+	}
+
+	// Threads per core (hyperthreading)
+	metadata.ThreadsPerCore, err = strconv.Atoi(cpuData["Thread(s) per core"])
+	if err != nil || metadata.ThreadsPerCore == 0 {
+		err = fmt.Errorf("failed to retrieve threads per core: %v", err)
+		return
+	}
+
+	// Model Name
+	metadata.ModelName = cpuData["Model name"]
+	if metadata.ModelName == "" {
+		err = fmt.Errorf("failed to retrieve model name")
+		return
+	}
+
+	// Vendor ID
+	metadata.Vendor = cpuData["Vendor ID"]
+	if metadata.Vendor == "" {
+		err = fmt.Errorf("failed to retrieve vendor ID")
+		return
+	}
+
+	fmt.Printf("DEBUG: Raw Socket(s): %q\n", cpuData["Socket(s)"])
+	fmt.Printf("DEBUG: Raw Thread(s) per core: %q\n", cpuData["Thread(s) per core"])
+	fmt.Printf("DEBUG: Model name: %q\n", metadata.ModelName)
+	fmt.Printf("DEBUG: Vendor ID: %q\n", metadata.Vendor)	
+	
+/*
 	// Core Count (per socket) (from cpuInfo)
 	metadata.CoresPerSocket, err = strconv.Atoi(cpuInfo[0]["cpu cores"])
 	if err != nil || metadata.CoresPerSocket == 0 {
@@ -84,14 +136,25 @@ func LoadMetadata(myTarget target.Target, noRoot bool, noSystemSummary bool, per
 	} else {
 		metadata.ThreadsPerCore = 1
 	}
+
 	// CPUSocketMap (from cpuInfo)
 	metadata.CPUSocketMap = createCPUSocketMap(metadata.CoresPerSocket, metadata.SocketCount, metadata.ThreadsPerCore == 2)
 	// Model Name (from cpuInfo)
 	metadata.ModelName = cpuInfo[0]["model name"]
 	// Vendor (from cpuInfo)
 	metadata.Vendor = cpuInfo[0]["vendor_id"]
+*/
+
+	cpuFamily := cpuData["Vendor ID"]
+	model := cpuData["Model"]
+	stepping := cpuData["Stepping"]
+
+	fmt.Printf("DEBUG: family=%q model=%q stepping=%q\n", cpuFamily, model, stepping)
+
+	cpu, err := report.GetCPU(cpuFamily, model, stepping)
+
 	// CPU microarchitecture (from cpuInfo)
-	cpu, err := report.GetCPU(cpuInfo[0]["cpu family"], cpuInfo[0]["model"], cpuInfo[0]["stepping"])
+	//	cpu, err := report.GetCPU(cpuData[0]["cpu family"], cpuData[0]["model"], cpuData[0]["stepping"])
 	if err != nil {
 		return
 	}
@@ -498,6 +561,32 @@ func getUncoreDeviceIDs(isAMDArchitecture bool, scriptOutputs map[string]script.
 	return
 }
 
+// getCPUCountsFromLscpu - extracts core, socket, and thread counts using lscpu
+func getCPUCountsFromLscpu(myTarget target.Target) (lscpuInfo []map[string]string, err error) {
+	cmd := exec.Command("lscpu")
+	stdout, stderr, exitcode, err := myTarget.RunCommand(cmd, 0, true)
+	if err != nil {
+		err = fmt.Errorf("failed to run lscpu: %s, %d, %v", stderr, exitcode, err)
+		return
+	}
+
+	infoMap := make(map[string]string)
+
+	for _, line := range strings.Split(stdout, "\n") {
+		fields := strings.SplitN(line, ":", 2)
+		if len(fields) != 2 {
+			continue
+		}
+		key := strings.TrimSpace(fields[0])
+		val := strings.TrimSpace(fields[1])
+		infoMap[key] = val
+	}
+
+	// Wrap single map into slice for consistency
+	lscpuInfo = append(lscpuInfo, infoMap)
+	return
+}
+
 // getCPUInfo - reads and returns all data from /proc/cpuinfo
 func getCPUInfo(myTarget target.Target) (cpuInfo []map[string]string, err error) {
 	cmd := exec.Command("cat", "/proc/cpuinfo")
@@ -640,6 +729,8 @@ func getNumGPCounters(uarch string) (numGPCounters int, err error) {
 		fallthrough
 	case "Tur":
 		numGPCounters = 5
+	case "Neo":
+		numGPCounters = 7
 	default:
 		err = fmt.Errorf("unsupported uarch: %s", uarch)
 		return

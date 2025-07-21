@@ -1,0 +1,11 @@
+[
+    {
+        "name": "CPI",
+        "expression": "[cpu-cycles] / [instructions]"
+    },
+
+    {
+        "name": "IPC",
+        "expression": "[instructions] / [cpu-cycles]"
+    }
+]

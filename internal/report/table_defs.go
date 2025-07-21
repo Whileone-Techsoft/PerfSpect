@@ -2239,7 +2239,8 @@ func cpuUtilizationTelemetryTableValues(outputs map[string]script.ScriptOutput) 
 		{Name: "%gnice"},
 		{Name: "%idle"},
 	}
-	reStat := regexp.MustCompile(`^(\d\d:\d\d:\d\d)\s+(\d+)\s+(\d+)\s+(\d+)\s+(-*\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)$`)
+//	reStat := regexp.MustCompile(`^(\d{2}:\d{2}:\d{2}\s[AP]M)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)$`)
+	reStat := regexp.MustCompile(`^(\d\d:\d\d:\d\d\s[AP]M)\s+(\d+)\s+(\d+)\s+(\d+)\s+(-*\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)$`)
 	for line := range strings.SplitSeq(outputs[script.MpstatTelemetryScriptName].Stdout, "\n") {
 		match := reStat.FindStringSubmatch(line)
 		if len(match) == 0 {
@@ -2266,7 +2267,9 @@ func utilizationCategoriesTelemetryTableValues(outputs map[string]script.ScriptO
 		{Name: "%gnice"},
 		{Name: "%idle"},
 	}
-	reStat := regexp.MustCompile(`^(\d\d:\d\d:\d\d)\s+all\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)$`)
+	// Need this regex for AMD X86 Machine, Above regex is original
+//	reStat := regexp.MustCompile(`^(\d{2}:\d{2}:\d{2}\s[AP]M)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)$`)
+	reStat := regexp.MustCompile(`^(\d\d:\d\d:\d\d\s[AP]M)\s+all\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)$`)
 	for line := range strings.SplitSeq(outputs[script.MpstatTelemetryScriptName].Stdout, "\n") {
 		match := reStat.FindStringSubmatch(line)
 		if len(match) == 0 {
@@ -2348,7 +2351,7 @@ func networkTelemetryTableValues(outputs map[string]script.ScriptOutput) []Field
 		{Name: "txkB/s"},
 	}
 	// don't capture the last four vals: "rxcmp/s","txcmp/s","rxcmt/s","%ifutil" -- obscure more important vals
-	reStat := regexp.MustCompile(`^(\d+:\d+:\d+)\s*(\w*)\s*(\d+.\d+)\s*(\d+.\d+)\s*(\d+.\d+)\s*(\d+.\d+)\s*\d+.\d+\s*\d+.\d+\s*\d+.\d+\s*\d+.\d+$`)
+	reStat := regexp.MustCompile(`^(\d+:\d+:\d+\s[AP]M)\s*(\w*)\s*(\d+.\d+)\s*(\d+.\d+)\s*(\d+.\d+)\s*(\d+.\d+)\s*\d+.\d+\s*\d+.\d+\s*\d+.\d+\s*\d+.\d+$`)
 	for line := range strings.SplitSeq(outputs[script.NetworkTelemetryScriptName].Stdout, "\n") {
 		match := reStat.FindStringSubmatch(line)
 		if len(match) == 0 {
@@ -2374,7 +2377,7 @@ func memoryTelemetryTableValues(outputs map[string]script.ScriptOutput) []Field 
 		{Name: "inactive"},
 		{Name: "dirty"},
 	}
-	reStat := regexp.MustCompile(`^(\d+:\d+:\d+)\s*(\d+)\s*(\d+)\s*(\d+)\s*\d+\.\d+\s*(\d+)\s*(\d+)\s*(\d+)\s*\d+\.\d+\s*(\d+)\s*(\d+)\s*(\d+)$`)
+	reStat := regexp.MustCompile(`^(\d+:\d+:\d+\s[AP]M)\s*(\d+)\s*(\d+)\s*(\d+)\s*\d+\.\d+\s*(\d+)\s*(\d+)\s*(\d+)\s*\d+\.\d+\s*(\d+)\s*(\d+)\s*(\d+)$`)
 	for line := range strings.SplitSeq(outputs[script.MemoryTelemetryScriptName].Stdout, "\n") {
 		match := reStat.FindStringSubmatch(line)
 		if len(match) == 0 {
