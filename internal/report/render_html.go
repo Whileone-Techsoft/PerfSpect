@@ -552,7 +552,7 @@ const heatmapChartTemplate = `
 	.append("stop")
 	.attr("offset", "50%")
 	.attr("stop-color", "#C0BDBB");
-gradient
+  gradient
 	.append("stop")
 	.attr("offset", "70%")
 	.attr("stop-color", "#E08455");
