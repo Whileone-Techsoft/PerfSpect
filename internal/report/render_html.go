@@ -470,12 +470,12 @@ const heatmapChartTemplate = `
   const x = d3.scaleBand()
     .range([0, width])
     .domain(xLabels)
-    .padding(0.05);
+    .padding(0);
 
   const y = d3.scaleBand()
     .range([height, 0])
     .domain(yLabels)
-    .padding(0.05);
+    .padding(0);
 
   svg.append("g")
     .attr("transform", "translate(0," + height + ")")
@@ -485,15 +485,18 @@ const heatmapChartTemplate = `
     .style("text-anchor", "end")
     .attr("transform", "rotate(-45)");
 
+	const maxLabelCount = Math.floor(height / 15);
+	const skipInterval = Math.ceil(yLabels.length / maxLabelCount);
+
   svg.append("g")
-    .call(d3.axisLeft(y).tickSize(0))
+    .call(d3.axisLeft(y).tickFormat((d, i) => (i % skipInterval === 0 ? d : "")).tickSize(0))
     .selectAll("text")
     .style("font-size", "10px");
 
   const colorScale = d3
     .scaleLinear()
     .domain([0, 50, 100])
-    .range(["#0E15B3", "#eeeeee", "#B20A1C"]);
+    .range(["#0E15B3", "#C0BDBB", "#E08455", "#B20A1C"]);
 
   const tooltip = d3.select("#{{.ID}}")
     .append("div")
@@ -545,9 +548,14 @@ const heatmapChartTemplate = `
   gradient.append("stop")
     .attr("offset", "0%")
     .attr("stop-color", "#0E15B3");
-  gradient.append("stop")
-    .attr("offset", "50%")
-    .attr("stop-color", "#eeeeee");
+  gradient
+	.append("stop")
+	.attr("offset", "50%")
+	.attr("stop-color", "#C0BDBB");
+gradient
+	.append("stop")
+	.attr("offset", "70%")
+	.attr("stop-color", "#E08455");
   gradient.append("stop")
     .attr("offset", "100%")
     .attr("stop-color", "#B20A1C");
