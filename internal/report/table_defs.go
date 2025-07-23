@@ -2463,7 +2463,8 @@ func frequencyTelemetryTableValues(outputs map[string]script.ScriptOutput) []Fie
 			// Extract time from sample line
 			parts := strings.Split(line, "at ")
 			if len(parts) == 2 {
-				currentTime = strings.TrimSpace(parts[1])
+				rawTime := strings.TrimSpace(parts[1])
+				currentTime = strings.Fields(rawTime)[0]
 			}
 		} else if freqVal, err := strconv.Atoi(line); err == nil {
 			currentFrequencies = append(currentFrequencies, freqVal)
