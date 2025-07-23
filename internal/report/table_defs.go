@@ -2442,6 +2442,60 @@ func frequencyTelemetryTableValues(outputs map[string]script.ScriptOutput) []Fie
 		{Name: "Time"},
 		{Name: "Core (Avg.)"},
 	}
+
+	stdout := outputs[script.TurbostatTelemetryScriptName].Stdout
+
+	scanner := bufio.NewScanner(strings.NewReader(stdout))
+	var currentTime string
+	var currentFrequencies []int
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, "----- SAMPLE") {
+			// If we already collected a sample, calculate and store the average
+			if len(currentFrequencies) > 0 {
+				avg := average(currentFrequencies)
+				fields[0].Values = append(fields[0].Values, currentTime)
+				fields[1].Values = append(fields[1].Values, fmt.Sprintf("%.2f", avg))
+			}
+			// Reset for next sample
+			currentFrequencies = nil
+
+			// Extract time from sample line
+			parts := strings.Split(line, "at ")
+			if len(parts) == 2 {
+				currentTime = strings.TrimSpace(parts[1])
+			}
+		} else if freqVal, err := strconv.Atoi(line); err == nil {
+			currentFrequencies = append(currentFrequencies, freqVal)
+		}
+	}
+
+	// Handle the last sample
+	if len(currentFrequencies) > 0 && currentTime != "" {
+		avg := average(currentFrequencies)
+		fields[0].Values = append(fields[0].Values, currentTime)
+		fields[1].Values = append(fields[1].Values, fmt.Sprintf("%.2f", avg))
+	}
+
+	return fields
+}
+
+func average(values []int) float64 {
+	if len(values) == 0 {
+		return 0.0
+	}
+	sum := 0
+	for _, v := range values {
+		sum += v
+	}
+	return float64(sum) / float64(len(values)) / 1000.0 // convert to GHz
+}
+
+func frequencyTelemetryTableValues_x86(outputs map[string]script.ScriptOutput) []Field {
+	fields := []Field{
+		{Name: "Time"},
+		{Name: "Core (Avg.)"},
+	}
 	platformRows, err := turbostatPlatformRows(outputs[script.TurbostatTelemetryScriptName].Stdout, []string{"Bzy_MHz"})
 	if err != nil {
 		slog.Error(err.Error())

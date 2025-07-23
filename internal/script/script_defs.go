@@ -1207,15 +1207,47 @@ wait
 		Name: TurbostatTelemetryScriptName,
 		ScriptTemplate: `interval={{.Interval}}
 duration={{.Duration}}
+
 if [ $duration -ne 0 ] && [ $interval -ne 0 ]; then
 	count=$((duration / interval))
-	count="-n $count"
 else
-	count=""
+	count=0
 fi
+
 echo TIME: $(date +"%H:%M:%S")
 echo INTERVAL: $interval
-turbostat -i $interval $count &
+echo COUNT: $count
+
+(
+	for i in $(seq 1 $count); do
+		echo "----- SAMPLE #$i at $(date +"%H:%M:%S") -----"
+
+		echo "-- CPU FREQUENCY (kHz) --"
+		cat /sys/devices/system/cpu/cpu*/cpufreq/scaling_cur_freq 2>/dev/null
+
+		echo "-- CPU TEMPERATURE (°C) --"
+		for f in /sys/class/hwmon/hwmon*/temp*_input; do
+			if [ -f "$f" ]; then
+				t=$(cat "$f" 2>/dev/null)
+				if [[ "$t" =~ ^[0-9]+$ ]]; then
+					if [ "$t" -gt 1000 ]; then
+						echo $((t / 1000))
+					else
+						echo "$t"
+					fi
+				fi
+			fi
+		done
+
+		echo "-- POWER (uW) --"
+		for power in /sys/class/powercap/intel-rapl*/energy_uj /sys/class/hwmon/hwmon*/power*_input; do
+			[ -f "$power" ] && cat "$power"
+		done
+
+		sleep $interval
+	done
+) &
+
 echo $! > {{.ScriptName}}_cmd.pid
 wait
 `,

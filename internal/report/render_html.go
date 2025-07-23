@@ -1327,6 +1327,58 @@ func memoryTelemetryTableHTMLRenderer(tableValues TableValues, targetName string
 }
 
 func averageFrequencyTelemetryTableHTMLRenderer(tableValues TableValues, targetName string) string {
+	avgFreqData := []float64{}
+	timeLabels := []string{}
+
+	for i, timeVal := range tableValues.Fields[0].Values {
+		var sum float64
+		var count int
+
+		for _, field := range tableValues.Fields[1:] {
+			if i >= len(field.Values) {
+				continue
+			}
+			val := field.Values[i]
+			if val == "" {
+				continue
+			}
+			freqKHz, err := strconv.ParseFloat(val, 64)
+			if err != nil {
+				slog.Error("error parsing frequency value", slog.String("value", val), slog.String("error", err.Error()))
+				continue
+			}
+			sum += freqKHz
+			count++
+		}
+
+		if count > 0 {
+			avgFreqMHz := sum / float64(count) / 1000.0 // Convert to MHz
+			avgFreqData = append(avgFreqData, avgFreqMHz)
+			timeLabels = append(timeLabels, timeVal)
+		}
+	}
+
+	chartConfig := chartTemplateStruct{
+		ID:            fmt.Sprintf("%s%d", tableValues.Name, util.RandUint(10000)),
+		XaxisText:     "Time",
+		YaxisText:     "Average Frequency (GHz)",
+		TitleText:     fmt.Sprintf("Average Frequency for %s", targetName),
+		DisplayTitle:  "true",
+		DisplayLegend: "false",
+		AspectRatio:   "2",
+		SuggestedMin:  "0",
+		SuggestedMax:  "0",
+	}
+
+	return telemetryTableHTMLRenderer(
+		tableValues,
+		[][]float64{avgFreqData},
+		[]string{"Average Frequency"},
+		chartConfig,
+	)
+}
+
+func averageFrequencyTelemetryTableHTMLRenderer_x86(tableValues TableValues, targetName string) string {
 	data := [][]float64{}
 	datasetNames := []string{}
 	for _, field := range tableValues.Fields[1:] {
