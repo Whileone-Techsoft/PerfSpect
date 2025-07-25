@@ -423,16 +423,27 @@ func (m *metricsFromCSV) loadHTMLTemplateValues(metadata Metadata) (templateVals
 		}
 	}
 	// All Metrics Tab
-	var metricHTMLStats [][]string
+	var metricHTMLStats [][]interface{}
 	for _, name := range m.names {
-		metricHTMLStats = append(metricHTMLStats, []string{
+		var indexedVals [][]interface{}
+		for idx, row := range m.rows {
+			val := row.metrics[name]
+			if math.IsNaN(val) || math.IsInf(val, 0) || val < 0 {
+				val = 0
+			}
+			indexedVals = append(indexedVals, []interface{}{idx, val})
+		}
+
+		metricHTMLStats = append(metricHTMLStats, []interface{}{
 			name,
 			fmt.Sprintf("%f", stats[name].mean),
 			fmt.Sprintf("%f", stats[name].min),
 			fmt.Sprintf("%f", stats[name].max),
 			fmt.Sprintf("%f", stats[name].stddev),
+			indexedVals,
 		})
 	}
+
 	var jsonMetricsBytes []byte
 	if jsonMetricsBytes, err = json.Marshal(metricHTMLStats); err != nil {
 		return

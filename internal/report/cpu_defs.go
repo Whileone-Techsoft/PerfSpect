@@ -75,8 +75,8 @@ var cpuDefinitions = []CPUDefinition{
 
 	// ARM CPUs
 	{MicroArchitecture: "Neoverse-N1", Family: "ARM", Model: "1", Stepping: "r3p1", Architecture: "aarch64", MemoryChannelCount: 8, LogicalThreadCount: 1, CacheWayCount: 0}, // AWS Graviton 2
-	{MicroArchitecture: "Neoverse-V1", Family: "", Model: "1", Stepping: "r1p1", Architecture: "aarch64", MemoryChannelCount: 8, LogicalThreadCount: 1, CacheWayCount: 0}, // AWS Graviton 3
-	{MicroArchitecture: "Neoverse-V2", Family: "", Model: "1", Stepping: "r0p1", Architecture: "aarch64", MemoryChannelCount: 8, LogicalThreadCount: 1, CacheWayCount: 0}, // AWS Graviton 4
+	{MicroArchitecture: "Neoverse-V1", Family: "ARM", Model: "1", Stepping: "r1p1", Architecture: "aarch64", MemoryChannelCount: 8, LogicalThreadCount: 1, CacheWayCount: 0}, // AWS Graviton 3
+	{MicroArchitecture: "Neoverse-V2", Family: "ARM", Model: "1", Stepping: "r0p1", Architecture: "aarch64", MemoryChannelCount: 8, LogicalThreadCount: 1, CacheWayCount: 0}, // AWS Graviton 4
 }
 
 // getCPUExtended retrieves the CPU structure that matches the provided args

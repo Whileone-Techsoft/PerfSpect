@@ -407,6 +407,17 @@
           }
         ]
       }
+      const getGraphOptionsForAllMetricsTab = (data = []) => {
+          return {
+            ...base_line,
+            series: [
+              {
+                type: "line",
+                data: data
+              }
+            ]
+          }
+      }
 
 
       const diffreport = (e) => {
@@ -727,6 +738,13 @@
               <Alert severity="info" sx={{ marginBottom: "24px" }}>
                 TMA metrics are a hierarchy where each sub-metric contains more periods "..." to designate its depth in the tree
               </Alert>
+              <Box
+                sx={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(2, minmax(200px, 1fr))",
+                      gap: "24px",
+                    }}
+                >
               <TableContainer component={Paper} sx={{ width: "fit-content" }}>
                 <Table size="small" style={{ tableLayout: 'auto' }}>
                   <TableHead>
@@ -781,6 +799,26 @@
                   </TableBody>
                 </Table>
               </TableContainer>
+              <Box>
+                  {current_metrics.map((metric) => {
+                    return (
+                        <Box>
+                          <Typography variant="h4">
+                            {metric[0] !== undefined && metric[0] !== null
+                              ? metric[0]
+                              : "No metric found"}
+                          </Typography>
+                          <ReactECharts style={{ minHeight: "250px" }} option={getGraphOptionsForAllMetricsTab(
+                              metric.at(-1) !== undefined &&
+                                metric.at(-1) !== null
+                                ? metric.at(-1)
+                                : []
+                            )} />
+                        </Box>
+                    )
+                  })}
+                </Box>
+              </Box>
             </TabPanel>
             <TabPanel
               value={systemTabs}

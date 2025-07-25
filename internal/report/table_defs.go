@@ -6,6 +6,7 @@ package report
 // table_defs.go defines the tables used for generating reports
 
 import (
+	"bufio"
 	"encoding/csv"
 	"fmt"
 	"log/slog"
@@ -117,7 +118,7 @@ const (
 	StorageBenchmarkTableName     = "Storage Benchmark"
 	// telemetry table names
 	CPUUtilizationTelemetryTableName        = "CPU Utilization Telemetry"
-	CPUUtilizationHeatmapTableName		= "CPU Utilization Telemetry Heatmap"
+	CPUUtilizationHeatmapTableName          = "CPU Utilization Telemetry Heatmap"
 	UtilizationCategoriesTelemetryTableName = "Utilization Categories Telemetry"
 	IPCTelemetryTableName                   = "IPC Telemetry"
 	C6TelemetryTableName                    = "C6 Telemetry"
@@ -144,7 +145,7 @@ const (
 const (
 	// telemetry table menu labels
 	CPUUtilizationTelemetryMenuLabel        = "CPU Utilization"
-	CPUUtilizationHeatmapMenuLabel		= "CPU Utilization Heatmap"
+	CPUUtilizationHeatmapMenuLabel          = "CPU Utilization Heatmap"
 	UtilizationCategoriesTelemetryMenuLabel = "Utilization Categories"
 	IPCTelemetryMenuLabel                   = "IPC"
 	C6TelemetryMenuLabel                    = "C6"
@@ -2251,7 +2252,7 @@ func cpuUtilizationTelemetryTableValues(outputs map[string]script.ScriptOutput) 
 		{Name: "%gnice"},
 		{Name: "%idle"},
 	}
-//	reStat := regexp.MustCompile(`^(\d{2}:\d{2}:\d{2}\s[AP]M)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)$`)
+	//	reStat := regexp.MustCompile(`^(\d{2}:\d{2}:\d{2}\s[AP]M)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)$`)
 	reStat := regexp.MustCompile(`^(\d\d:\d\d:\d\d\s[AP]M)\s+(\d+)\s+(\d+)\s+(\d+)\s+(-*\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)$`)
 	for line := range strings.SplitSeq(outputs[script.MpstatTelemetryScriptName].Stdout, "\n") {
 		match := reStat.FindStringSubmatch(line)
@@ -2280,7 +2281,7 @@ func utilizationCategoriesTelemetryTableValues(outputs map[string]script.ScriptO
 		{Name: "%idle"},
 	}
 	// Need this regex for AMD X86 Machine, Above regex is original
-//	reStat := regexp.MustCompile(`^(\d{2}:\d{2}:\d{2}\s[AP]M)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)$`)
+	//	reStat := regexp.MustCompile(`^(\d{2}:\d{2}:\d{2}\s[AP]M)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)$`)
 	reStat := regexp.MustCompile(`^(\d\d:\d\d:\d\d\s[AP]M)\s+all\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)$`)
 	for line := range strings.SplitSeq(outputs[script.MpstatTelemetryScriptName].Stdout, "\n") {
 		match := reStat.FindStringSubmatch(line)
@@ -2473,6 +2474,62 @@ func frequencyTelemetryTableValues(outputs map[string]script.ScriptOutput) []Fie
 		{Name: "Time"},
 		{Name: "Core (Avg.)"},
 	}
+
+	stdout := outputs[script.TurbostatTelemetryScriptName].Stdout
+
+	scanner := bufio.NewScanner(strings.NewReader(stdout))
+	var currentTime string
+	var currentFrequencies []int
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, "----- SAMPLE") {
+			// If we already collected a sample, calculate and store the average
+			if len(currentFrequencies) > 0 {
+				avg := average(currentFrequencies)
+				fields[0].Values = append(fields[0].Values, currentTime)
+				fields[1].Values = append(fields[1].Values, fmt.Sprintf("%.2f", avg))
+			}
+			// Reset for next sample
+			currentFrequencies = nil
+
+			// Extract time from sample line
+			parts := strings.Split(line, "at ")
+			if len(parts) == 2 {
+				rawTime := strings.TrimSpace(parts[1])
+				currentTime = strings.Fields(rawTime)[0]
+			}
+		} else if freqVal, err := strconv.Atoi(line); err == nil {
+			currentFrequencies = append(currentFrequencies, freqVal)
+		}
+	}
+
+	// Handle the last sample
+	if len(currentFrequencies) > 0 && currentTime != "" {
+		avg := average(currentFrequencies)
+		fields[0].Values = append(fields[0].Values, currentTime)
+		fields[1].Values = append(fields[1].Values, fmt.Sprintf("%.2f", avg))
+	}
+
+	return fields
+}
+
+func average(values []int) float64 {
+	if len(values) == 0 {
+		return 0.0
+	}
+	sum := 0
+	for _, v := range values {
+		sum += v
+	}
+	return float64(sum) / float64(len(values)) / 1000.0 // convert to MHz
+}
+
+func frequencyTelemetryTableValues_x86(outputs map[string]script.ScriptOutput) []Field {
+	fields := []Field{
+		{Name: "Time"},
+		{Name: "Core (Avg.)"},
+	}
+	fmt.Println("outputs", outputs)
 	platformRows, err := turbostatPlatformRows(outputs[script.TurbostatTelemetryScriptName].Stdout, []string{"Bzy_MHz"})
 	if err != nil {
 		slog.Error(err.Error())
