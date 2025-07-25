@@ -516,6 +516,7 @@ const heatmapChartTemplate = `
     .attr("y", d => y(d.core))
     .attr("width", x.bandwidth())
     .attr("height", y.bandwidth())
+	.attr("shape-rendering", "crispEdges")
     .style("fill", d => colorScale(d.value))
     .on("mouseover", function(event, d) {
       tooltip.style("opacity", 1)
