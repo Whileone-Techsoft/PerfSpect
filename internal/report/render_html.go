@@ -444,142 +444,216 @@ new Chart(document.getElementById('{{.ID}}'), {
 </script>
 `
 
-const heatmapChartTemplate = `
+// const heatmapChartTemplate = `
+// <div class="chart-container" style="max-width: 900px">
+//   <div id="{{.ID}}"></div>
+// </div>
+// <script src="https://d3js.org/d3.v7.min.js"></script>
+// <script>
+// (function() {
+//   const data = {{.Datasets}}; // expects JSON array of {core, time, value}
+
+//   const margin = {top: 60, right: 60, bottom: 50, left: 90},
+//         width = 900 - margin.left - margin.right,
+//         height = 400 - margin.top - margin.bottom;
+
+//   const svg = d3.select("#{{.ID}}")
+//     .append("svg")
+//     .attr("width", width + margin.left + margin.right + 60) // extra for legend
+//     .attr("height", height + margin.top + margin.bottom)
+//     .append("g")
+//     .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+//   const xLabels = [...new Set(data.map(d => d.time))];
+//   const yLabels = [...new Set(data.map(d => d.core))];
+
+//   const x = d3.scaleBand()
+//     .range([0, width])
+//     .domain(xLabels)
+//     .padding(0);
+
+//   const y = d3.scaleBand()
+//     .range([height, 0])
+//     .domain(yLabels)
+//     .padding(0);
+
+//   svg.append("g")
+//     .attr("transform", "translate(0," + height + ")")
+//     .call(d3.axisBottom(x).tickSize(0))
+//     .selectAll("text")
+//     .style("font-size", "10px")
+//     .style("text-anchor", "end")
+//     .attr("transform", "rotate(-45)");
+
+// 	const maxLabelCount = Math.floor(height / 15);
+// 	const skipInterval = Math.ceil(yLabels.length / maxLabelCount);
+
+//   svg.append("g")
+//     .call(d3.axisLeft(y).tickFormat((d, i) => (i % skipInterval === 0 ? d : "")).tickSize(0))
+//     .selectAll("text")
+//     .style("font-size", "10px");
+
+//   const colorScale = d3
+//     .scaleLinear()
+//     .domain([0, 50, 100])
+//     .range(["#0E15B3", "#C0BDBB", "#E08455", "#B20A1C"]);
+
+//   const tooltip = d3.select("#{{.ID}}")
+//     .append("div")
+//     .style("opacity", 0)
+//     .style("position", "absolute")
+//     .style("background", "#333")
+//     .style("color", "#fff")
+//     .style("padding", "6px 10px")
+//     .style("border-radius", "4px")
+//     .style("font-size", "12px");
+
+//   svg.selectAll()
+//     .data(data)
+//     .enter()
+//     .append("rect")
+//     .attr("x", d => x(d.time))
+//     .attr("y", d => y(d.core))
+//     .attr("width", x.bandwidth())
+//     .attr("height", y.bandwidth())
+// 	.attr("shape-rendering", "crispEdges")
+//     .style("fill", d => colorScale(d.value))
+//     .on("mouseover", function(event, d) {
+//       tooltip.style("opacity", 1)
+//              .html(d.core + " @ " + d.time + "<br>Value: " + d.value.toFixed(2))
+//              .style("left", (event.pageX + 10) + "px")
+//              .style("top", (event.pageY - 28) + "px");
+//     })
+//     .on("mouseout", () => tooltip.style("opacity", 0));
+
+//   svg.append("text")
+//     .attr("x", width / 2)
+//     .attr("y", -margin.top / 2)
+//     .attr("text-anchor", "middle")
+//     .style("font-size", "18px")
+//     .style("font-weight", "bold")
+//     .text("{{.TitleText}}");
+
+//   // --- LEGEND ---
+//   const legendHeight = 200;
+//   const legendWidth = 20;
+
+//   const defs = svg.append("defs");
+//   const gradient = defs.append("linearGradient")
+//     .attr("id", "legend-gradient")
+//     .attr("x1", "0%")
+//     .attr("y1", "100%")
+//     .attr("x2", "0%")
+//     .attr("y2", "0%");
+
+//   gradient.append("stop")
+//     .attr("offset", "0%")
+//     .attr("stop-color", "#0E15B3");
+//   gradient
+// 	.append("stop")
+// 	.attr("offset", "50%")
+// 	.attr("stop-color", "#C0BDBB");
+//   gradient
+// 	.append("stop")
+// 	.attr("offset", "70%")
+// 	.attr("stop-color", "#E08455");
+//   gradient.append("stop")
+//     .attr("offset", "100%")
+//     .attr("stop-color", "#B20A1C");
+
+//   const legendGroup = svg.append("g")
+//     .attr("transform", "translate(" + (width + 40) + ", " + ((height - legendHeight) / 2) + ")");
+
+//   legendGroup.append("rect")
+//     .attr("width", legendWidth)
+//     .attr("height", legendHeight)
+//     .style("fill", "url(#legend-gradient)")
+//     .style("stroke", "#999")
+//     .style("stroke-width", "1");
+
+//   const legendScale = d3.scaleLinear()
+//     .domain([0, 100])
+//     .range([legendHeight, 0]);
+
+//   legendGroup.append("g")
+//     .attr("transform", "translate(" + legendWidth + ", 0)")
+//     .call(d3.axisRight(legendScale).ticks(5))
+//     .selectAll("text")
+//     .style("font-size", "10px");
+// })();
+// </script>
+// `
+
+const heatmapChartTemplatePlotlyVersion = `
 <div class="chart-container" style="max-width: 900px">
   <div id="{{.ID}}"></div>
 </div>
-<script src="https://d3js.org/d3.v7.min.js"></script>
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 <script>
 (function() {
-  const data = {{.Datasets}}; // expects JSON array of {core, time, value}
+  const rawData = {{.Datasets}}; // expects JSON array of {core, time, value}
 
-  const margin = {top: 60, right: 60, bottom: 50, left: 90},
-        width = 900 - margin.left - margin.right,
-        height = 400 - margin.top - margin.bottom;
+  // Extract unique labels
+	const cores = [...new Set(rawData.map((d) => d.core))];
+	const times = [...new Set(rawData.map((d) => d.time))];
 
-  const svg = d3.select("#{{.ID}}")
-    .append("svg")
-    .attr("width", width + margin.left + margin.right + 60) // extra for legend
-    .attr("height", height + margin.top + margin.bottom)
-    .append("g")
-    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+	// Initialize a matrix filled with NaN or 0
+	const matrix = cores.map((core) => {
+		return times.map((time) => {
+		const entry = rawData.find(
+			(d) => d.core === core && d.time === time
+		);
+		return entry ? entry.value : null;
+		});
+	});
 
-  const xLabels = [...new Set(data.map(d => d.time))];
-  const yLabels = [...new Set(data.map(d => d.core))];
+	const data = [
+		{
+			z: matrix,
+			x: times,
+			y: cores,
+			type: "heatmap",
+			colorscale: [
+			[0.0, '#0E15B3'],   // 0%
+			[0.5, '#C0BDBB'],   // 50%
+			[0.7, '#E08455'],   // 70%
+			[1.0, '#B20A1C']    // 100%
+			],
+			colorbar: {
+				title: "",
+				titleside: "right",
+				tickfont: { size: 10 },
+			},
+			hoverongaps: false,
+		},
+	];
 
-  const x = d3.scaleBand()
-    .range([0, width])
-    .domain(xLabels)
-    .padding(0);
+	const layout = {
+		title: {
+		text: "{{.TitleText}}",
+		font: { size: 18 },
+		xref: "container",
+		x: 0.5,
+		},
+		margin: { l: 80, r: 60, t: 60, b: 80 },
+		xaxis: {
+		title: "",
+		tickangle: -45,
+		automargin: true,
+		tickfont: { size: 10 },
+		type: "category",
+		},
+		yaxis: {
+		title: "",
+		tickfont: { size: 10 },
+		automargin: true,
+		type: "category",
+		},
+	};
 
-  const y = d3.scaleBand()
-    .range([height, 0])
-    .domain(yLabels)
-    .padding(0);
-
-  svg.append("g")
-    .attr("transform", "translate(0," + height + ")")
-    .call(d3.axisBottom(x).tickSize(0))
-    .selectAll("text")
-    .style("font-size", "10px")
-    .style("text-anchor", "end")
-    .attr("transform", "rotate(-45)");
-
-	const maxLabelCount = Math.floor(height / 15);
-	const skipInterval = Math.ceil(yLabels.length / maxLabelCount);
-
-  svg.append("g")
-    .call(d3.axisLeft(y).tickFormat((d, i) => (i % skipInterval === 0 ? d : "")).tickSize(0))
-    .selectAll("text")
-    .style("font-size", "10px");
-
-  const colorScale = d3
-    .scaleLinear()
-    .domain([0, 50, 100])
-    .range(["#0E15B3", "#C0BDBB", "#E08455", "#B20A1C"]);
-
-  const tooltip = d3.select("#{{.ID}}")
-    .append("div")
-    .style("opacity", 0)
-    .style("position", "absolute")
-    .style("background", "#333")
-    .style("color", "#fff")
-    .style("padding", "6px 10px")
-    .style("border-radius", "4px")
-    .style("font-size", "12px");
-
-  svg.selectAll()
-    .data(data)
-    .enter()
-    .append("rect")
-    .attr("x", d => x(d.time))
-    .attr("y", d => y(d.core))
-    .attr("width", x.bandwidth())
-    .attr("height", y.bandwidth())
-	.attr("shape-rendering", "crispEdges")
-    .style("fill", d => colorScale(d.value))
-    .on("mouseover", function(event, d) {
-      tooltip.style("opacity", 1)
-             .html(d.core + " @ " + d.time + "<br>Value: " + d.value.toFixed(2))
-             .style("left", (event.pageX + 10) + "px")
-             .style("top", (event.pageY - 28) + "px");
-    })
-    .on("mouseout", () => tooltip.style("opacity", 0));
-
-  svg.append("text")
-    .attr("x", width / 2)
-    .attr("y", -margin.top / 2)
-    .attr("text-anchor", "middle")
-    .style("font-size", "18px")
-    .style("font-weight", "bold")
-    .text("{{.TitleText}}");
-
-  // --- LEGEND ---
-  const legendHeight = 200;
-  const legendWidth = 20;
-
-  const defs = svg.append("defs");
-  const gradient = defs.append("linearGradient")
-    .attr("id", "legend-gradient")
-    .attr("x1", "0%")
-    .attr("y1", "100%")
-    .attr("x2", "0%")
-    .attr("y2", "0%");
-
-  gradient.append("stop")
-    .attr("offset", "0%")
-    .attr("stop-color", "#0E15B3");
-  gradient
-	.append("stop")
-	.attr("offset", "50%")
-	.attr("stop-color", "#C0BDBB");
-  gradient
-	.append("stop")
-	.attr("offset", "70%")
-	.attr("stop-color", "#E08455");
-  gradient.append("stop")
-    .attr("offset", "100%")
-    .attr("stop-color", "#B20A1C");
-
-  const legendGroup = svg.append("g")
-    .attr("transform", "translate(" + (width + 40) + ", " + ((height - legendHeight) / 2) + ")");
-
-  legendGroup.append("rect")
-    .attr("width", legendWidth)
-    .attr("height", legendHeight)
-    .style("fill", "url(#legend-gradient)")
-    .style("stroke", "#999")
-    .style("stroke-width", "1");
-
-  const legendScale = d3.scaleLinear()
-    .domain([0, 100])
-    .range([legendHeight, 0]);
-
-  legendGroup.append("g")
-    .attr("transform", "translate(" + legendWidth + ", 0)")
-    .call(d3.axisRight(legendScale).ticks(5))
-    .selectAll("text")
-    .style("font-size", "10px");
+	Plotly.newPlot("{{.ID}}", data, layout, {
+		responsive: true,
+	});
 })();
 </script>
 `
@@ -800,7 +874,7 @@ func renderChart(chartType string, allFormattedPoints []string, datasetNames []s
     case "scatter":
         chartTemplate = scatterChartTemplate
     case "heatmap":
-        chartTemplate = heatmapChartTemplate
+        chartTemplate = heatmapChartTemplatePlotlyVersion
     default:
         panic("unknown chart type")
     }
