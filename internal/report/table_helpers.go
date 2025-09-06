@@ -13,7 +13,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"time"
 
 	"perfspect/internal/script"
 	"perfspect/internal/util"
@@ -1417,15 +1416,14 @@ func gpuInfoFromOutput(outputs map[string]script.ScriptOutput) []GPU {
 }
 
 type Gaudi struct {
-	ModuleID          string
-	Microarchitecture string
-	SerialNumber      string
-	BusID             string
-	DriverVersion     string
-	EROM              string
-	CPLD              string
-	SPI               string
-	NUMA              string
+	ModuleID      string
+	SerialNumber  string
+	BusID         string
+	DriverVersion string
+	EROM          string
+	CPLD          string
+	SPI           string
+	NUMA          string
 }
 
 // output from the GaudiInfo script:
@@ -1505,10 +1503,6 @@ func gaudiInfoFromOutput(outputs map[string]script.ScriptOutput) []Gaudi {
 	sort.Slice(gaudis, func(i, j int) bool {
 		return gaudis[i].ModuleID < gaudis[j].ModuleID
 	})
-	// set microarchitecture (assumes same arch for all gaudi devices)
-	for i := range gaudis {
-		gaudis[i].Microarchitecture = strings.TrimSpace(outputs[script.GaudiArchitectureScriptName].Stdout)
-	}
 	// get NUMA affinity
 	numaAffinities := valsArrayFromRegexSubmatch(outputs[script.GaudiNumaScriptName].Stdout, `^(\d+)\s+(\d+)\s+$`)
 	if len(numaAffinities) != len(gaudis) {
@@ -1693,6 +1687,7 @@ func acceleratorSummaryFromOutput(outputs map[string]script.ScriptOutput) string
 		} else if strings.Contains(name, "CPU") { // rename "QAT (on CPU) to simply "QAT"
 			name = "QAT"
 		}
+		fmt.Println("counts array")
 		summary = append(summary, fmt.Sprintf("%s %s [0]", name, counts[i]))
 	}
 	return strings.Join(summary, ", ")
@@ -1717,11 +1712,9 @@ func cveSummaryFromOutput(outputs map[string]script.ScriptOutput) string {
 
 func systemSummaryFromOutput(outputs map[string]script.ScriptOutput) string {
 	// BASELINE: 1-node, 2x Intel® Xeon® <SKU, processor>, xx cores, 100W TDP, HT On/Off?, Turbo On/Off?, Total Memory xxx GB (xx slots/ xx GB/ xxxx MHz [run @ xxxx MHz] ), <BIOS version>, <ucode version>, <OS Version>, <kernel version>. Test by Intel as of <mm/dd/yy>.
-	template := "1-node, %s, %sx %s, %s cores, %s TDP, %s %s, %s %s, Total Memory %s, BIOS %s, microcode %s, %s, %s, %s, %s. Test by Intel as of %s."
-	var systemType, socketCount, cpuModel, coreCount, tdp, htLabel, htOnOff, turboLabel, turboOnOff, installedMem, biosVersion, uCodeVersion, nics, disks, operatingSystem, kernelVersion, date string
+	template := "1-node, %sx %s, %s cores, %s TDP, HT %s, Turbo %s, Total Memory %s, BIOS %s, microcode %s, %s, %s, %s, %s. Test by Intel as of %s."
+	var socketCount, cpuModel, coreCount, tdp, htOnOff, turboOnOff, installedMem, biosVersion, uCodeVersion, nics, disks, operatingSystem, kernelVersion, date string
 
-	// system type
-	systemType = valFromDmiDecodeRegexSubmatch(outputs[script.DmidecodeScriptName].Stdout, "1", `^Manufacturer:\s*(.+?)$`) + " " + valFromDmiDecodeRegexSubmatch(outputs[script.DmidecodeScriptName].Stdout, "1", `^Product Name:\s*(.+?)$`)
 	// socket count
 	socketCount = valFromRegexSubmatch(outputs[script.LscpuScriptName].Stdout, `^Socket\(s\):\s*(\d+)$`)
 	// CPU model
@@ -1733,12 +1726,7 @@ func systemSummaryFromOutput(outputs map[string]script.ScriptOutput) string {
 	if tdp == "" {
 		tdp = "?"
 	}
-	vendor := valFromRegexSubmatch(outputs[script.LscpuScriptName].Stdout, `^Vendor ID:\s*(.+)$`)
 	// hyperthreading
-	htLabel = "HT"
-	if vendor == "AuthenticAMD" {
-		htLabel = "SMT"
-	}
 	htOnOff = hyperthreadingFromOutput(outputs)
 	switch htOnOff {
 	case "Enabled":
@@ -1751,10 +1739,6 @@ func systemSummaryFromOutput(outputs map[string]script.ScriptOutput) string {
 		htOnOff = "?"
 	}
 	// turbo
-	turboLabel = "Turbo"
-	if vendor == "AuthenticAMD" {
-		turboLabel = "Boost"
-	}
 	turboOnOff = turboEnabledFromOutput(outputs)
 	if strings.Contains(strings.ToLower(turboOnOff), "enabled") {
 		turboOnOff = "On"
@@ -1779,17 +1763,8 @@ func systemSummaryFromOutput(outputs map[string]script.ScriptOutput) string {
 	kernelVersion = valFromRegexSubmatch(outputs[script.UnameScriptName].Stdout, `^Linux \S+ (\S+)`)
 	// date
 	date = strings.TrimSpace(outputs[script.DateScriptName].Stdout)
-	// parse date so that we can format it
-	parsedTime, err := time.Parse("Mon Jan 2 15:04:05 MST 2006", date) // without AM/PM
-	if err != nil {
-		parsedTime, err = time.Parse("Mon Jan 2 15:04:05 AM MST 2006", date) // with AM/PM
-	}
-	if err == nil {
-		date = parsedTime.Format("January 2 2006")
-	}
-
 	// put it all together
-	return fmt.Sprintf(template, systemType, socketCount, cpuModel, coreCount, tdp, htLabel, htOnOff, turboLabel, turboOnOff, installedMem, biosVersion, uCodeVersion, nics, disks, operatingSystem, kernelVersion, date)
+	return fmt.Sprintf(template, socketCount, cpuModel, coreCount, tdp, htOnOff, turboOnOff, installedMem, biosVersion, uCodeVersion, nics, disks, operatingSystem, kernelVersion, date)
 }
 
 // getSectionsFromOutput parses output into sections, where the section name

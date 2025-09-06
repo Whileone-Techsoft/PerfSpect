@@ -1,0 +1,9 @@
+# Neoverse-V2 event list
+inst_retired,
+cycles,
+stall_frontend,
+stall_frontend_slot,
+stall_backend,
+stall_slot_backend,
+op_spec,
+op_retired;

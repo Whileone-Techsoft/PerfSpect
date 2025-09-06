@@ -1,0 +1,19 @@
+[
+    {
+        "name": "FRONTEND",
+        "expression": "100 * ( [stall_slot_frontend] / ( [cpu-cycles] * 8) - [br_mis_pred] / [cpu-cycles])"
+    },
+    {
+    	"name": "BACKEND",
+	"expression": "100 * ( [stall_slot_backend] / ( [cpu-cycles] * 8) - [br_mis_pred] * 3 / [cpu-cycles])"
+    
+    },
+    {
+	"name": "LOST",
+	"expression": "100 * ((1 - [op_retired] / [op_spec]) * (1 - [stall_slot] / ( [cpu-cycles] * 8)) + [br_mis_pred] * 4 / [cpu-cycles])"
+    },
+    {
+	"name": "RETIRING",
+	"expression": "100 * ( [op_retired] / [op_spec] * (1 - [stall_slot] / ( [cpu-cycles] * 8)))"
+    }
+]

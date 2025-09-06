@@ -98,7 +98,6 @@ const (
 	GaudiInfoScriptName              = "gaudi info"
 	GaudiFirmwareScriptName          = "gaudi firmware"
 	GaudiNumaScriptName              = "gaudi numa"
-	GaudiArchitectureScriptName      = "gaudi architecture"
 	// benchmark scripts
 	MemoryBenchmarkScriptName    = "memory benchmark"
 	NumaBenchmarkScriptName      = "numa benchmark"
@@ -938,22 +937,6 @@ done
 		ScriptTemplate: `hl-smi topo -N`,
 		Vendors:        []string{"GenuineIntel"},
 	},
-	GaudiArchitectureScriptName: {
-		Name: GaudiArchitectureScriptName,
-		ScriptTemplate: `# Determine the default HL_DEVICE based on PCI ID
-__DEFAULT_HL_DEVICE=
-__pcidev=$(grep PCI_ID /sys/bus/pci/devices/*/uevent | grep -i 1da3: || echo "")
-if echo $__pcidev | grep -qE '1000|1001|1010|1011'; then
-	__DEFAULT_HL_DEVICE="gaudi"
-elif echo $__pcidev | grep -qE '1020|1030'; then
-	__DEFAULT_HL_DEVICE="gaudi2"
-elif echo $__pcidev | grep -qE '106[0-9]'; then
-	__DEFAULT_HL_DEVICE="gaudi3"
-fi
-echo $__DEFAULT_HL_DEVICE
-`,
-		Vendors: []string{"GenuineIntel"},
-	},
 	MemoryBenchmarkScriptName: {
 		Name: MemoryBenchmarkScriptName,
 		ScriptTemplate: `# measure memory loaded latency
@@ -966,7 +949,7 @@ needed_num_huge_pages=$((numa_nodes * min_kb / size_huge_pages_kb))
 if [ $needed_num_huge_pages -gt $orig_num_huge_pages ]; then
   echo $needed_num_huge_pages > /proc/sys/vm/nr_hugepages
 fi
-mlc --loaded_latency -b500m -X
+mlc --loaded_latency
 echo $orig_num_huge_pages > /proc/sys/vm/nr_hugepages
 `,
 		Architectures: []string{x86_64},
@@ -987,7 +970,7 @@ needed_num_huge_pages=$((numa_nodes * min_kb / size_huge_pages_kb))
 if [ $needed_num_huge_pages -gt $orig_num_huge_pages ]; then
   echo $needed_num_huge_pages > /proc/sys/vm/nr_hugepages
 fi
-mlc --bandwidth_matrix -b500m -X
+mlc --bandwidth_matrix
 echo $orig_num_huge_pages > /proc/sys/vm/nr_hugepages
 `,
 		Architectures: []string{x86_64},
@@ -1009,8 +992,7 @@ done
 		Sequential: true,
 	},
 	FrequencyBenchmarkScriptName: {
-		Name:          FrequencyBenchmarkScriptName,
-		Architectures: []string{x86_64},
+		Name: FrequencyBenchmarkScriptName,
 		ScriptTemplate: `# Function to expand a range of numbers, e.g. "0-24", into an array of numbers
 expand_range() {
 	local range=$1
@@ -1101,7 +1083,6 @@ avx-turbo --min-threads=1 --max-threads=$num_cores_per_socket --test scalar_iadd
 	},
 	PowerBenchmarkScriptName: {
 		Name:           PowerBenchmarkScriptName,
-		Architectures:  []string{x86_64},
 		ScriptTemplate: `((turbostat -i 2 2>/dev/null &) ; stress-ng --cpu 0 --bsearch 0 -t 60s >/dev/null 2>&1 ; pkill -9 -f turbostat)`,
 		Superuser:      true,
 		Lkms:           []string{"msr"},
@@ -1110,7 +1091,6 @@ avx-turbo --min-threads=1 --max-threads=$num_cores_per_socket --test scalar_iadd
 	},
 	IdlePowerBenchmarkScriptName: {
 		Name:           IdlePowerBenchmarkScriptName,
-		Architectures:  []string{x86_64},
 		ScriptTemplate: `turbostat -i 2 -n 2 2>/dev/null`,
 		Superuser:      true,
 		Lkms:           []string{"msr"},
@@ -1120,36 +1100,33 @@ avx-turbo --min-threads=1 --max-threads=$num_cores_per_socket --test scalar_iadd
 	StorageBenchmarkScriptName: {
 		Name: StorageBenchmarkScriptName,
 		ScriptTemplate: `
-numjobs=1
 file_size_g=5
-space_needed_k=$(( (file_size_g + 1) * 1024 * 1024 * numjobs )) # space needed in kilobytes: (file_size_g + 1) GB per job
+numjobs=1
+total_file_size_g=$(($file_size_g * $numjobs))
 ramp_time=5s
 runtime=120s
 ioengine=sync
-# check if .StorageDir is a directory
-if [[ ! -d "{{.StorageDir}}" ]]; then
-	echo "ERROR: {{.StorageDir}} does not exist"
+# confirm that .StorageDir is a directory, is writeable, and has enough space
+if [[ -d "{{.StorageDir}}" && -w "{{.StorageDir}}" ]]; then
+	available_space=$(df -hP "{{.StorageDir}}")
+	count=$( echo "$available_space" | awk '/[0-9]%%/{print substr($4,1,length($4)-1)}' )
+	unit=$( echo "$available_space" | awk '/[0-9]%%/{print substr($4,length($4),1)}' )
+	is_enough_gigabytes=$(awk -v c="$count" -v f=$total_file_size_g 'BEGIN{print (c>f)?1:0}')
+	is_terabyte_or_more=$(echo "TPEZY" | grep -F -q "$unit" && echo 1 || echo 0)
+	if [[ ("$unit" == "G" && "$is_enough_gigabytes" == 0) && "$is_terabyte_or_more" == 1 ]]; then
+		echo "ERROR: {{.StorageDir}} does not have enough available space - $total_file_size_g GB required"
+		exit 1
+	fi
+else
+	echo "ERROR: {{.StorageDir}} does not exist or is not writeable"
 	exit 1
 fi
-# check if .StorageDir is writeable
-if [[ ! -w "{{.StorageDir}}" ]]; then
-	echo "ERROR: {{.StorageDir}} is not writeable"
-	exit 1
-fi
-# check if .StorageDir has enough space
-# example output for df -P /tmp:
-# Filesystem     1024-blocks      Used Available Capacity Mounted on
-# /dev/sdd        1055762868 196668944 805390452      20% /
-available_space=$(df -P "{{.StorageDir}}" | awk 'NR==2 {print $4}')
-if [[ $available_space -lt $space_needed_k ]]; then
-	echo "ERROR: {{.StorageDir}} has ${available_space}K available space. A minimum of ${space_needed_k}K is required to run this benchmark."
-	exit 1
-fi
-# create temporary directory for fio test
-test_dir=$(mktemp -d --tmpdir="{{.StorageDir}}")
+# single-threaded read & write bandwidth test
+test_dir="{{.StorageDir}}"/fio_test
+rm -rf $test_dir
+mkdir -p $test_dir
 sync
 /sbin/sysctl -w vm.drop_caches=3 || true
-# single-threaded read & write bandwidth test
 fio --name=bandwidth --directory=$test_dir --numjobs=$numjobs \
 --size="$file_size_g"G --time_based --runtime=$runtime --ramp_time=$ramp_time --ioengine=$ioengine \
 --direct=1 --verify=0 --bs=1M --iodepth=64 --rw=rw \
@@ -1169,7 +1146,7 @@ duration={{.Duration}}
 if [ $duration -ne 0 ] && [ $interval -ne 0 ]; then
 	count=$((duration / interval))
 fi
-LC_TIME=C mpstat -u -T -I SCPU -P ALL $interval $count &
+mpstat -u -T -I SCPU -P ALL $interval $count &
 echo $! > {{.ScriptName}}_cmd.pid
 wait
 `,
@@ -1201,7 +1178,7 @@ duration={{.Duration}}
 if [ $duration -ne 0 ] && [ $interval -ne 0 ]; then
 	count=$((duration / interval))
 fi
-LC_TIME=C sar -r $interval $count &
+sar -r $interval $count &
 echo $! > {{.ScriptName}}_cmd.pid
 wait
 `,
@@ -1217,7 +1194,7 @@ duration={{.Duration}}
 if [ $duration -ne 0 ] && [ $interval -ne 0 ]; then
 	count=$((duration / interval))
 fi
-LC_TIME=C sar -n DEV $interval $count &
+sar -n DEV $interval $count &
 echo $! > {{.ScriptName}}_cmd.pid
 wait
 `,
@@ -1227,22 +1204,54 @@ wait
 		NeedsKill: true,
 	},
 	TurbostatTelemetryScriptName: {
-		Name:          TurbostatTelemetryScriptName,
-		Architectures: []string{x86_64},
+		Name: TurbostatTelemetryScriptName,
 		ScriptTemplate: `interval={{.Interval}}
 duration={{.Duration}}
+
 if [ $duration -ne 0 ] && [ $interval -ne 0 ]; then
 	count=$((duration / interval))
-	count="-n $count"
 else
-	count=""
+	count=0
 fi
+
 echo TIME: $(date +"%H:%M:%S")
 echo INTERVAL: $interval
-turbostat -i $interval $count &
+echo COUNT: $count
+
+(
+	for i in $(seq 1 $count); do
+		echo "----- SAMPLE #$i at $(date +"%H:%M:%S") -----"
+
+		echo "-- CPU FREQUENCY (kHz) --"
+		cat /sys/devices/system/cpu/cpu*/cpufreq/scaling_cur_freq 2>/dev/null
+
+		echo "-- CPU TEMPERATURE (°C) --"
+		for f in /sys/class/hwmon/hwmon*/temp*_input; do
+			if [ -f "$f" ]; then
+				t=$(cat "$f" 2>/dev/null)
+				if [[ "$t" =~ ^[0-9]+$ ]]; then
+					if [ "$t" -gt 1000 ]; then
+						echo $((t / 1000))
+					else
+						echo "$t"
+					fi
+				fi
+			fi
+		done
+
+		echo "-- POWER (uW) --"
+		for power in /sys/class/powercap/intel-rapl*/energy_uj /sys/class/hwmon/hwmon*/power*_input; do
+			[ -f "$power" ] && cat "$power"
+		done
+
+		sleep $interval
+	done
+) &
+
 echo $! > {{.ScriptName}}_cmd.pid
 wait
 `,
+
 		Superuser: true,
 		Lkms:      []string{"msr"},
 		Depends:   []string{"turbostat"},

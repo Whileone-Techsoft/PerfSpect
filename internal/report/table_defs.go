@@ -6,6 +6,7 @@ package report
 // table_defs.go defines the tables used for generating reports
 
 import (
+	"bufio"
 	"encoding/csv"
 	"fmt"
 	"log/slog"
@@ -117,6 +118,7 @@ const (
 	StorageBenchmarkTableName     = "Storage Benchmark"
 	// telemetry table names
 	CPUUtilizationTelemetryTableName        = "CPU Utilization Telemetry"
+	CPUUtilizationHeatmapTableName          = "CPU Utilization Telemetry Heatmap"
 	UtilizationCategoriesTelemetryTableName = "Utilization Categories Telemetry"
 	IPCTelemetryTableName                   = "IPC Telemetry"
 	C6TelemetryTableName                    = "C6 Telemetry"
@@ -143,6 +145,7 @@ const (
 const (
 	// telemetry table menu labels
 	CPUUtilizationTelemetryMenuLabel        = "CPU Utilization"
+	CPUUtilizationHeatmapMenuLabel          = "CPU Utilization Heatmap"
 	UtilizationCategoriesTelemetryMenuLabel = "Utilization Categories"
 	IPCTelemetryMenuLabel                   = "IPC"
 	C6TelemetryMenuLabel                    = "C6"
@@ -245,10 +248,9 @@ var tableDefinitions = map[string]TableDefinition{
 		},
 		FieldsFunc: prefetcherTableValues},
 	ISATableName: {
-		Name:          ISATableName,
-		Architectures: []string{"x86_64"},
-		ScriptNames:   []string{script.CpuidScriptName},
-		FieldsFunc:    isaTableValues},
+		Name:        ISATableName,
+		ScriptNames: []string{script.CpuidScriptName},
+		FieldsFunc:  isaTableValues},
 	AcceleratorTableName: {
 		Name:    AcceleratorTableName,
 		Vendors: []string{"GenuineIntel"},
@@ -413,14 +415,12 @@ var tableDefinitions = map[string]TableDefinition{
 		},
 		FieldsFunc: gpuTableValues},
 	GaudiTableName: {
-		Name:          GaudiTableName,
-		Architectures: []string{"x86_64"},
-		HasRows:       true,
+		Name:    GaudiTableName,
+		HasRows: true,
 		ScriptNames: []string{
 			script.GaudiInfoScriptName,
 			script.GaudiFirmwareScriptName,
 			script.GaudiNumaScriptName,
-			script.GaudiArchitectureScriptName,
 		},
 		FieldsFunc: gaudiTableValues},
 	CXLTableName: {
@@ -598,29 +598,26 @@ var tableDefinitions = map[string]TableDefinition{
 		},
 		FieldsFunc: speedBenchmarkTableValues},
 	PowerBenchmarkTableName: {
-		Name:          PowerBenchmarkTableName,
-		MenuLabel:     PowerBenchmarkTableName,
-		Architectures: []string{"x86_64"},
-		HasRows:       false,
+		Name:      PowerBenchmarkTableName,
+		MenuLabel: PowerBenchmarkTableName,
+		HasRows:   false,
 		ScriptNames: []string{
 			script.IdlePowerBenchmarkScriptName,
 			script.PowerBenchmarkScriptName,
 		},
 		FieldsFunc: powerBenchmarkTableValues},
 	TemperatureBenchmarkTableName: {
-		Name:          TemperatureBenchmarkTableName,
-		MenuLabel:     TemperatureBenchmarkTableName,
-		Architectures: []string{"x86_64"},
-		HasRows:       false,
+		Name:      TemperatureBenchmarkTableName,
+		MenuLabel: TemperatureBenchmarkTableName,
+		HasRows:   false,
 		ScriptNames: []string{
 			script.PowerBenchmarkScriptName,
 		},
 		FieldsFunc: temperatureBenchmarkTableValues},
 	FrequencyBenchmarkTableName: {
-		Name:          FrequencyBenchmarkTableName,
-		MenuLabel:     FrequencyBenchmarkTableName,
-		Architectures: []string{"x86_64"},
-		HasRows:       true,
+		Name:      FrequencyBenchmarkTableName,
+		MenuLabel: FrequencyBenchmarkTableName,
+		HasRows:   true,
 		ScriptNames: []string{
 			script.SpecCoreFrequenciesScriptName,
 			script.LscpuScriptName,
@@ -631,10 +628,9 @@ var tableDefinitions = map[string]TableDefinition{
 		FieldsFunc:            frequencyBenchmarkTableValues,
 		HTMLTableRendererFunc: frequencyBenchmarkTableHtmlRenderer},
 	MemoryBenchmarkTableName: {
-		Name:          MemoryBenchmarkTableName,
-		MenuLabel:     MemoryBenchmarkTableName,
-		Architectures: []string{"x86_64"},
-		HasRows:       true,
+		Name:      MemoryBenchmarkTableName,
+		MenuLabel: MemoryBenchmarkTableName,
+		HasRows:   true,
 		ScriptNames: []string{
 			script.MemoryBenchmarkScriptName,
 		},
@@ -643,10 +639,9 @@ var tableDefinitions = map[string]TableDefinition{
 		HTMLTableRendererFunc:            memoryBenchmarkTableHtmlRenderer,
 		HTMLMultiTargetTableRendererFunc: memoryBenchmarkTableMultiTargetHtmlRenderer},
 	NUMABenchmarkTableName: {
-		Name:          NUMABenchmarkTableName,
-		MenuLabel:     NUMABenchmarkTableName,
-		Architectures: []string{"x86_64"},
-		HasRows:       true,
+		Name:      NUMABenchmarkTableName,
+		MenuLabel: NUMABenchmarkTableName,
+		HasRows:   true,
 		ScriptNames: []string{
 			script.NumaBenchmarkScriptName,
 		},
@@ -672,6 +667,16 @@ var tableDefinitions = map[string]TableDefinition{
 		},
 		FieldsFunc:            cpuUtilizationTelemetryTableValues,
 		HTMLTableRendererFunc: cpuUtilizationTelemetryTableHTMLRenderer},
+	CPUUtilizationHeatmapTableName: {
+		Name:      CPUUtilizationHeatmapTableName,
+		MenuLabel: CPUUtilizationHeatmapMenuLabel,
+		HasRows:   true,
+		ScriptNames: []string{
+			script.MpstatTelemetryScriptName,
+		},
+		FieldsFunc:            cpuUtilizationTelemetryTableValues,
+		HTMLTableRendererFunc: cpuUtilizationHeatmapRenderer},
+
 	UtilizationCategoriesTelemetryTableName: {
 		Name:      UtilizationCategoriesTelemetryTableName,
 		MenuLabel: UtilizationCategoriesTelemetryMenuLabel,
@@ -682,30 +687,27 @@ var tableDefinitions = map[string]TableDefinition{
 		FieldsFunc:            utilizationCategoriesTelemetryTableValues,
 		HTMLTableRendererFunc: utilizationCategoriesTelemetryTableHTMLRenderer},
 	IPCTelemetryTableName: {
-		Name:          IPCTelemetryTableName,
-		MenuLabel:     IPCTelemetryMenuLabel,
-		Architectures: []string{"x86_64"},
-		HasRows:       true,
+		Name:      IPCTelemetryTableName,
+		MenuLabel: IPCTelemetryMenuLabel,
+		HasRows:   true,
 		ScriptNames: []string{
 			script.TurbostatTelemetryScriptName,
 		},
 		FieldsFunc:            ipcTelemetryTableValues,
 		HTMLTableRendererFunc: ipcTelemetryTableHTMLRenderer},
 	C6TelemetryTableName: {
-		Name:          C6TelemetryTableName,
-		MenuLabel:     C6TelemetryMenuLabel,
-		Architectures: []string{"x86_64"},
-		HasRows:       true,
+		Name:      C6TelemetryTableName,
+		MenuLabel: C6TelemetryMenuLabel,
+		HasRows:   true,
 		ScriptNames: []string{
 			script.TurbostatTelemetryScriptName,
 		},
 		FieldsFunc:            c6TelemetryTableValues,
 		HTMLTableRendererFunc: c6TelemetryTableHTMLRenderer},
 	FrequencyTelemetryTableName: {
-		Name:          FrequencyTelemetryTableName,
-		MenuLabel:     FrequencyTelemetryMenuLabel,
-		Architectures: []string{"x86_64"},
-		HasRows:       true,
+		Name:      FrequencyTelemetryTableName,
+		MenuLabel: FrequencyTelemetryMenuLabel,
+		HasRows:   true,
 		ScriptNames: []string{
 			script.TurbostatTelemetryScriptName,
 		},
@@ -748,40 +750,36 @@ var tableDefinitions = map[string]TableDefinition{
 		FieldsFunc:            memoryTelemetryTableValues,
 		HTMLTableRendererFunc: memoryTelemetryTableHTMLRenderer},
 	PowerTelemetryTableName: {
-		Name:          PowerTelemetryTableName,
-		MenuLabel:     PowerTelemetryMenuLabel,
-		Architectures: []string{"x86_64"},
-		HasRows:       true,
+		Name:      PowerTelemetryTableName,
+		MenuLabel: PowerTelemetryMenuLabel,
+		HasRows:   true,
 		ScriptNames: []string{
 			script.TurbostatTelemetryScriptName,
 		},
 		FieldsFunc:            powerTelemetryTableValues,
 		HTMLTableRendererFunc: powerTelemetryTableHTMLRenderer},
 	TemperatureTelemetryTableName: {
-		Name:          TemperatureTelemetryTableName,
-		MenuLabel:     TemperatureTelemetryMenuLabel,
-		Architectures: []string{"x86_64"},
-		HasRows:       true,
+		Name:      TemperatureTelemetryTableName,
+		MenuLabel: TemperatureTelemetryMenuLabel,
+		HasRows:   true,
 		ScriptNames: []string{
 			script.TurbostatTelemetryScriptName,
 		},
 		FieldsFunc:            temperatureTelemetryTableValues,
 		HTMLTableRendererFunc: temperatureTelemetryTableHTMLRenderer},
 	InstructionTelemetryTableName: {
-		Name:          InstructionTelemetryTableName,
-		MenuLabel:     InstructionTelemetryMenuLabel,
-		Architectures: []string{"x86_64"},
-		HasRows:       true,
+		Name:      InstructionTelemetryTableName,
+		MenuLabel: InstructionTelemetryMenuLabel,
+		HasRows:   true,
 		ScriptNames: []string{
 			script.InstructionTelemetryScriptName,
 		},
 		FieldsFunc:            instructionTelemetryTableValues,
 		HTMLTableRendererFunc: instructionTelemetryTableHTMLRenderer},
 	GaudiTelemetryTableName: {
-		Name:          GaudiTelemetryTableName,
-		MenuLabel:     GaudiTelemetryMenuLabel,
-		Architectures: []string{"x86_64"},
-		HasRows:       true,
+		Name:      GaudiTelemetryTableName,
+		MenuLabel: GaudiTelemetryMenuLabel,
+		HasRows:   true,
 		ScriptNames: []string{
 			script.GaudiTelemetryScriptName,
 		},
@@ -893,35 +891,24 @@ func validateTableValues(tableValues TableValues) error {
 // define the fieldsFunc for each table
 //
 
-// Tables without rows have a fixed set of fields with a single value each.
-// If no data is found for a field, the value is an empty string.
-//
-// Tables with rows have a variable number of fields and values
-// depending on the system configuration. If no data is found for a table with rows,
-// the FieldsFunc should return an empty slice of fields.
-
 func hostTableValues(outputs map[string]script.ScriptOutput) []Field {
-	hostName := strings.TrimSpace(outputs[script.HostnameScriptName].Stdout)
-	time := strings.TrimSpace(outputs[script.DateScriptName].Stdout)
-	system := valFromDmiDecodeRegexSubmatch(outputs[script.DmidecodeScriptName].Stdout, "1", `^Manufacturer:\s*(.+?)$`) +
-		" " + valFromDmiDecodeRegexSubmatch(outputs[script.DmidecodeScriptName].Stdout, "1", `^Product Name:\s*(.+?)$`) +
-		", " + valFromDmiDecodeRegexSubmatch(outputs[script.DmidecodeScriptName].Stdout, "1", `^Version:\s*(.+?)$`)
-	baseboard := valFromDmiDecodeRegexSubmatch(outputs[script.DmidecodeScriptName].Stdout, "2", `^Manufacturer:\s*(.+?)$`) +
-		" " + valFromDmiDecodeRegexSubmatch(outputs[script.DmidecodeScriptName].Stdout, "2", `^Product Name:\s*(.+?)$`) +
-		", " + valFromDmiDecodeRegexSubmatch(outputs[script.DmidecodeScriptName].Stdout, "2", `^Version:\s*(.+?)$`)
-	chassis := valFromDmiDecodeRegexSubmatch(outputs[script.DmidecodeScriptName].Stdout, "3", `^Manufacturer:\s*(.+?)$`) +
-		" " + valFromDmiDecodeRegexSubmatch(outputs[script.DmidecodeScriptName].Stdout, "3", `^Type:\s*(.+?)$`) +
-		", " + valFromDmiDecodeRegexSubmatch(outputs[script.DmidecodeScriptName].Stdout, "3", `^Version:\s*(.+?)$`)
 	return []Field{
-		{Name: "Host Name", Values: []string{hostName}},
-		{Name: "Time", Values: []string{time}},
-		{Name: "System", Values: []string{system}},
-		{Name: "Baseboard", Values: []string{baseboard}},
-		{Name: "Chassis", Values: []string{chassis}},
+		{Name: "Host Name", Values: []string{strings.TrimSpace(outputs[script.HostnameScriptName].Stdout)}},
+		{Name: "Time", Values: []string{strings.TrimSpace(outputs[script.DateScriptName].Stdout)}},
+		{Name: "System", Values: []string{valFromDmiDecodeRegexSubmatch(outputs[script.DmidecodeScriptName].Stdout, "1", `^Manufacturer:\s*(.+?)$`) + " " + valFromDmiDecodeRegexSubmatch(outputs[script.DmidecodeScriptName].Stdout, "1", `^Product Name:\s*(.+?)$`)}},
+		{Name: "Baseboard", Values: []string{valFromDmiDecodeRegexSubmatch(outputs[script.DmidecodeScriptName].Stdout, "2", `^Manufacturer:\s*(.+?)$`) + " " + valFromDmiDecodeRegexSubmatch(outputs[script.DmidecodeScriptName].Stdout, "2", `^Product Name:\s*(.+?)$`)}},
+		{Name: "Chassis", Values: []string{valFromDmiDecodeRegexSubmatch(outputs[script.DmidecodeScriptName].Stdout, "3", `^Manufacturer:\s*(.+?)$`) + " " + valFromDmiDecodeRegexSubmatch(outputs[script.DmidecodeScriptName].Stdout, "3", `^Type:\s*(.+?)$`)}},
 	}
 }
 
 func pcieSlotsTableValues(outputs map[string]script.ScriptOutput) []Field {
+	fields := []Field{
+		{Name: "Designation"},
+		{Name: "Type"},
+		{Name: "Length"},
+		{Name: "Bus Address"},
+		{Name: "Current Usage"},
+	}
 	fieldValues := valsArrayFromDmiDecodeRegexSubmatch(outputs[script.DmidecodeScriptName].Stdout, "9",
 		[]string{
 			`^Designation:\s*(.+?)$`,
@@ -931,16 +918,6 @@ func pcieSlotsTableValues(outputs map[string]script.ScriptOutput) []Field {
 			`^Current Usage:\s*(.+?)$`,
 		}...,
 	)
-	if len(fieldValues) == 0 {
-		return []Field{}
-	}
-	fields := []Field{
-		{Name: "Designation"},
-		{Name: "Type"},
-		{Name: "Length"},
-		{Name: "Bus Address"},
-		{Name: "Current Usage"},
-	}
 	for i := range fields {
 		for j := range fieldValues {
 			fields[i].Values = append(fields[i].Values, fieldValues[j][i])
@@ -963,12 +940,8 @@ func biosTableValues(outputs map[string]script.ScriptOutput) []Field {
 		}...,
 	)
 	for i := range fields {
-		if len(fieldValues) > 0 {
-			for j := range fieldValues {
-				fields[i].Values = append(fields[i].Values, fieldValues[j][i])
-			}
-		} else {
-			fields[i].Values = append(fields[i].Values, "")
+		for j := range fieldValues {
+			fields[i].Values = append(fields[i].Values, fieldValues[j][i])
 		}
 	}
 	return fields
@@ -1124,12 +1097,8 @@ func isaTableValues(outputs map[string]script.ScriptOutput) []Field {
 }
 
 func acceleratorTableValues(outputs map[string]script.ScriptOutput) []Field {
-	names := acceleratorNames()
-	if len(names) == 0 {
-		return []Field{}
-	}
 	return []Field{
-		{Name: "Name", Values: names},
+		{Name: "Name", Values: acceleratorNames()},
 		{Name: "Count", Values: acceleratorCountsFromOutput(outputs)},
 		{Name: "Work Queues", Values: acceleratorWorkQueuesFromOutput(outputs)},
 		{Name: "Full Name", Values: acceleratorFullNamesFromYaml()},
@@ -1207,14 +1176,11 @@ func powerTableInsights(outputs map[string]script.ScriptOutput, tableValues Tabl
 }
 
 func cstateTableValues(outputs map[string]script.ScriptOutput) []Field {
-	cstates := cstatesFromOutput(outputs)
-	if len(cstates) == 0 {
-		return []Field{}
-	}
 	fields := []Field{
 		{Name: "Name"},
 		{Name: "Status"}, // enabled/disabled
 	}
+	cstates := cstatesFromOutput(outputs)
 	for _, cstateInfo := range cstates {
 		fields[0].Values = append(fields[0].Values, cstateInfo.Name)
 		fields[1].Values = append(fields[1].Values, cstateInfo.Status)
@@ -1475,24 +1441,6 @@ func memoryTableInsights(outputs map[string]script.ScriptOutput, tableValues Tab
 }
 
 func dimmTableValues(outputs map[string]script.ScriptOutput) []Field {
-	dimmFieldValues := valsArrayFromDmiDecodeRegexSubmatch(outputs[script.DmidecodeScriptName].Stdout, "17",
-		[]string{
-			`^Bank Locator:\s*(.+?)$`,
-			`^Locator:\s*(.+?)$`,
-			`^Manufacturer:\s*(.+?)$`,
-			`^Part Number:\s*(.+?)\s*$`,
-			`^Serial Number:\s*(.+?)\s*$`,
-			`^Size:\s*(.+?)$`,
-			`^Type:\s*(.+?)$`,
-			`^Type Detail:\s*(.+?)$`,
-			`^Speed:\s*(.+?)$`,
-			`^Rank:\s*(.+?)$`,
-			`^Configured.*Speed:\s*(.+?)$`,
-		}...,
-	)
-	if len(dimmFieldValues) == 0 {
-		return []Field{}
-	}
 	fields := []Field{
 		{Name: "Bank Locator"},
 		{Name: "Locator"},
@@ -1509,6 +1457,21 @@ func dimmTableValues(outputs map[string]script.ScriptOutput) []Field {
 		{Name: "Channel"},
 		{Name: "Slot"},
 	}
+	dimmFieldValues := valsArrayFromDmiDecodeRegexSubmatch(outputs[script.DmidecodeScriptName].Stdout, "17",
+		[]string{
+			`^Bank Locator:\s*(.+?)$`,
+			`^Locator:\s*(.+?)$`,
+			`^Manufacturer:\s*(.+?)$`,
+			`^Part Number:\s*(.+?)\s*$`,
+			`^Serial Number:\s*(.+?)\s*$`,
+			`^Size:\s*(.+?)$`,
+			`^Type:\s*(.+?)$`,
+			`^Type Detail:\s*(.+?)$`,
+			`^Speed:\s*(.+?)$`,
+			`^Rank:\s*(.+?)$`,
+			`^Configured.*Speed:\s*(.+?)$`,
+		}...,
+	)
 	for dimmIndex := range dimmFieldValues {
 		for fieldIndex := 0; fieldIndex <= 10; fieldIndex++ {
 			fields[fieldIndex].Values = append(fields[fieldIndex].Values, dimmFieldValues[dimmIndex][fieldIndex])
@@ -1569,10 +1532,6 @@ func dimmTableInsights(outputs map[string]script.ScriptOutput, tableValues Table
 }
 
 func nicTableValues(outputs map[string]script.ScriptOutput) []Field {
-	allNicsInfo := parseNicInfo(outputs[script.NicInfoScriptName].Stdout)
-	if len(allNicsInfo) == 0 {
-		return []Field{}
-	}
 	fields := []Field{
 		{Name: "Name"},
 		{Name: "Vendor (ID)"},
@@ -1587,6 +1546,7 @@ func nicTableValues(outputs map[string]script.ScriptOutput) []Field {
 		{Name: "NUMA Node"},
 		{Name: "IRQBalance"},
 	}
+	allNicsInfo := parseNicInfo(outputs[script.NicInfoScriptName].Stdout)
 	for _, nicInfo := range allNicsInfo {
 		fields[0].Values = append(fields[0].Values, nicInfo.Name)
 		fields[1].Values = append(fields[1].Values, nicInfo.Vendor)
@@ -1611,14 +1571,11 @@ func nicTableValues(outputs map[string]script.ScriptOutput) []Field {
 }
 
 func networkIRQMappingTableValues(outputs map[string]script.ScriptOutput) []Field {
-	nicIRQMappings := nicIRQMappingsFromOutput(outputs)
-	if len(nicIRQMappings) == 0 {
-		return []Field{}
-	}
 	fields := []Field{
 		{Name: "Interface"},
 		{Name: "IRQ:CPU | IRQ:CPU | ..."},
 	}
+	nicIRQMappings := nicIRQMappingsFromOutput(outputs)
 	for _, nicIRQMapping := range nicIRQMappings {
 		fields[0].Values = append(fields[0].Values, nicIRQMapping[0])
 		fields[1].Values = append(fields[1].Values, nicIRQMapping[1])
@@ -1663,10 +1620,6 @@ func networkConfigTableValues(outputs map[string]script.ScriptOutput) []Field {
 }
 
 func diskTableValues(outputs map[string]script.ScriptOutput) []Field {
-	allDisksInfo := diskInfoFromOutput(outputs)
-	if len(allDisksInfo) == 0 {
-		return []Field{}
-	}
 	fields := []Field{
 		{Name: "Name"},
 		{Name: "Model"},
@@ -1683,6 +1636,7 @@ func diskTableValues(outputs map[string]script.ScriptOutput) []Field {
 		{Name: "Max Link Speed"},
 		{Name: "Max Link Width"},
 	}
+	allDisksInfo := diskInfoFromOutput(outputs)
 	for _, diskInfo := range allDisksInfo {
 		fields[0].Values = append(fields[0].Values, diskInfo.Name)
 		fields[1].Values = append(fields[1].Values, diskInfo.Model)
@@ -1725,15 +1679,12 @@ func filesystemTableInsights(outputs map[string]script.ScriptOutput, tableValues
 }
 
 func gpuTableValues(outputs map[string]script.ScriptOutput) []Field {
-	gpuInfos := gpuInfoFromOutput(outputs)
-	if len(gpuInfos) == 0 {
-		return []Field{}
-	}
 	fields := []Field{
 		{Name: "Manufacturer"},
 		{Name: "Model"},
 		{Name: "PCI ID"},
 	}
+	gpuInfos := gpuInfoFromOutput(outputs)
 	for _, gpuInfo := range gpuInfos {
 		fields[0].Values = append(fields[0].Values, gpuInfo.Manufacturer)
 		fields[1].Values = append(fields[1].Values, gpuInfo.Model)
@@ -1743,13 +1694,8 @@ func gpuTableValues(outputs map[string]script.ScriptOutput) []Field {
 }
 
 func gaudiTableValues(outputs map[string]script.ScriptOutput) []Field {
-	gaudiInfos := gaudiInfoFromOutput(outputs)
-	if len(gaudiInfos) == 0 {
-		return []Field{}
-	}
 	fields := []Field{
 		{Name: "Module ID"},
-		{Name: "Microarchitecture"},
 		{Name: "Serial Number"},
 		{Name: "Bus ID"},
 		{Name: "Driver Version"},
@@ -1758,25 +1704,21 @@ func gaudiTableValues(outputs map[string]script.ScriptOutput) []Field {
 		{Name: "SPI"},
 		{Name: "NUMA"},
 	}
+	gaudiInfos := gaudiInfoFromOutput(outputs)
 	for _, gaudiInfo := range gaudiInfos {
 		fields[0].Values = append(fields[0].Values, gaudiInfo.ModuleID)
-		fields[1].Values = append(fields[1].Values, gaudiInfo.Microarchitecture)
-		fields[2].Values = append(fields[2].Values, gaudiInfo.SerialNumber)
-		fields[3].Values = append(fields[3].Values, gaudiInfo.BusID)
-		fields[4].Values = append(fields[4].Values, gaudiInfo.DriverVersion)
-		fields[5].Values = append(fields[5].Values, gaudiInfo.EROM)
-		fields[6].Values = append(fields[6].Values, gaudiInfo.CPLD)
-		fields[7].Values = append(fields[7].Values, gaudiInfo.SPI)
-		fields[8].Values = append(fields[8].Values, gaudiInfo.NUMA)
+		fields[1].Values = append(fields[1].Values, gaudiInfo.SerialNumber)
+		fields[2].Values = append(fields[2].Values, gaudiInfo.BusID)
+		fields[3].Values = append(fields[3].Values, gaudiInfo.DriverVersion)
+		fields[4].Values = append(fields[4].Values, gaudiInfo.EROM)
+		fields[5].Values = append(fields[5].Values, gaudiInfo.CPLD)
+		fields[6].Values = append(fields[6].Values, gaudiInfo.SPI)
+		fields[7].Values = append(fields[7].Values, gaudiInfo.NUMA)
 	}
 	return fields
 }
 
 func cxlTableValues(outputs map[string]script.ScriptOutput) []Field {
-	cxlDevices := getPCIDevices("CXL", outputs)
-	if len(cxlDevices) == 0 {
-		return []Field{}
-	}
 	fields := []Field{
 		{Name: "Slot"},
 		{Name: "Class"},
@@ -1787,6 +1729,7 @@ func cxlTableValues(outputs map[string]script.ScriptOutput) []Field {
 		{Name: "NUMANode"},
 		{Name: "IOMMUGroup"},
 	}
+	cxlDevices := getPCIDevices("CXL", outputs)
 	for _, cxlDevice := range cxlDevices {
 		for fieldIdx, field := range fields {
 			if value, ok := cxlDevice[field.Name]; ok {
@@ -1858,9 +1801,6 @@ func sensorTableValues(outputs map[string]script.ScriptOutput) []Field {
 		fields[1].Values = append(fields[1].Values, tokens[1])
 		fields[2].Values = append(fields[2].Values, tokens[2])
 	}
-	if len(fields[0].Values) == 0 {
-		return []Field{}
-	}
 	return fields
 }
 
@@ -1899,9 +1839,6 @@ func systemEventLogTableValues(outputs map[string]script.ScriptOutput) []Field {
 		fields[2].Values = append(fields[2].Values, tokens[2])
 		fields[3].Values = append(fields[3].Values, tokens[3])
 		fields[4].Values = append(fields[4].Values, tokens[4])
-	}
-	if len(fields[0].Values) == 0 {
-		return []Field{}
 	}
 	return fields
 }
@@ -1953,22 +1890,12 @@ func pmuTableValues(outputs map[string]script.ScriptOutput) []Field {
 }
 
 func systemSummaryTableValues(outputs map[string]script.ScriptOutput) []Field {
-	system := valFromDmiDecodeRegexSubmatch(outputs[script.DmidecodeScriptName].Stdout, "1", `^Manufacturer:\s*(.+?)$`) +
-		" " + valFromDmiDecodeRegexSubmatch(outputs[script.DmidecodeScriptName].Stdout, "1", `^Product Name:\s*(.+?)$`) +
-		", " + valFromDmiDecodeRegexSubmatch(outputs[script.DmidecodeScriptName].Stdout, "1", `^Version:\s*(.+?)$`)
-	baseboard := valFromDmiDecodeRegexSubmatch(outputs[script.DmidecodeScriptName].Stdout, "2", `^Manufacturer:\s*(.+?)$`) +
-		" " + valFromDmiDecodeRegexSubmatch(outputs[script.DmidecodeScriptName].Stdout, "2", `^Product Name:\s*(.+?)$`) +
-		", " + valFromDmiDecodeRegexSubmatch(outputs[script.DmidecodeScriptName].Stdout, "2", `^Version:\s*(.+?)$`)
-	chassis := valFromDmiDecodeRegexSubmatch(outputs[script.DmidecodeScriptName].Stdout, "3", `^Manufacturer:\s*(.+?)$`) +
-		" " + valFromDmiDecodeRegexSubmatch(outputs[script.DmidecodeScriptName].Stdout, "3", `^Type:\s*(.+?)$`) +
-		", " + valFromDmiDecodeRegexSubmatch(outputs[script.DmidecodeScriptName].Stdout, "3", `^Version:\s*(.+?)$`)
-
 	return []Field{
 		{Name: "Host Name", Values: []string{strings.TrimSpace(outputs[script.HostnameScriptName].Stdout)}},
 		{Name: "Time", Values: []string{strings.TrimSpace(outputs[script.DateScriptName].Stdout)}},
-		{Name: "System", Values: []string{system}},
-		{Name: "Baseboard", Values: []string{baseboard}},
-		{Name: "Chassis", Values: []string{chassis}},
+		{Name: "System", Values: []string{valFromDmiDecodeRegexSubmatch(outputs[script.DmidecodeScriptName].Stdout, "1", `^Manufacturer:\s*(.+?)$`) + " " + valFromDmiDecodeRegexSubmatch(outputs[script.DmidecodeScriptName].Stdout, "1", `^Product Name:\s*(.+?)$`)}},
+		{Name: "Baseboard", Values: []string{valFromDmiDecodeRegexSubmatch(outputs[script.DmidecodeScriptName].Stdout, "2", `^Manufacturer:\s*(.+?)$`) + " " + valFromDmiDecodeRegexSubmatch(outputs[script.DmidecodeScriptName].Stdout, "2", `^Product Name:\s*(.+?)$`)}},
+		{Name: "Chassis", Values: []string{valFromDmiDecodeRegexSubmatch(outputs[script.DmidecodeScriptName].Stdout, "3", `^Manufacturer:\s*(.+?)$`) + " " + valFromDmiDecodeRegexSubmatch(outputs[script.DmidecodeScriptName].Stdout, "3", `^Type:\s*(.+?)$`)}},
 		{Name: "CPU Model", Values: []string{valFromRegexSubmatch(outputs[script.LscpuScriptName].Stdout, `^[Mm]odel name:\s*(.+)$`)}},
 		{Name: "Architecture", Values: []string{valFromRegexSubmatch(outputs[script.LscpuScriptName].Stdout, `^Architecture:\s*(.+)$`)}},
 		{Name: "Microarchitecture", Values: []string{UarchFromOutput(outputs)}},
@@ -2258,9 +2185,6 @@ func memoryBenchmarkTableValues(outputs map[string]script.ScriptOutput) []Field 
 		fields[0].Values = append([]string{latency}, fields[0].Values...)
 		fields[1].Values = append([]string{fmt.Sprintf("%.1f", bandwidth/1000)}, fields[1].Values...)
 	}
-	if len(fields[0].Values) == 0 {
-		return []Field{}
-	}
 	return fields
 }
 
@@ -2297,17 +2221,11 @@ func numaBenchmarkTableValues(outputs map[string]script.ScriptOutput) []Field {
 			fields[i+1].Values = append(fields[i+1].Values, fmt.Sprintf("%.1f", val/1000))
 		}
 	}
-	if len(fields[0].Values) == 0 {
-		return []Field{}
-	}
 	return fields
 }
 
 func storageBenchmarkTableValues(outputs map[string]script.ScriptOutput) []Field {
 	readBW, writeBW := storagePerfFromOutput(outputs)
-	if readBW == "" && writeBW == "" {
-		return []Field{}
-	}
 	return []Field{
 		{Name: "Single-Thread Read Bandwidth", Values: []string{readBW}},
 		{Name: "Single-Thread Write Bandwidth", Values: []string{writeBW}},
@@ -2334,7 +2252,8 @@ func cpuUtilizationTelemetryTableValues(outputs map[string]script.ScriptOutput) 
 		{Name: "%gnice"},
 		{Name: "%idle"},
 	}
-	reStat := regexp.MustCompile(`^(\d\d:\d\d:\d\d)\s+(\d+)\s+(\d+)\s+(\d+)\s+(-*\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)$`)
+	//	reStat := regexp.MustCompile(`^(\d{2}:\d{2}:\d{2}\s[AP]M)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)$`)
+	reStat := regexp.MustCompile(`^(\d\d:\d\d:\d\d\s[AP]M)\s+(\d+)\s+(\d+)\s+(\d+)\s+(-*\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)$`)
 	for line := range strings.SplitSeq(outputs[script.MpstatTelemetryScriptName].Stdout, "\n") {
 		match := reStat.FindStringSubmatch(line)
 		if len(match) == 0 {
@@ -2343,9 +2262,6 @@ func cpuUtilizationTelemetryTableValues(outputs map[string]script.ScriptOutput) 
 		for i := range fields {
 			fields[i].Values = append(fields[i].Values, match[i+1])
 		}
-	}
-	if len(fields[0].Values) == 0 {
-		return []Field{}
 	}
 	return fields
 }
@@ -2364,7 +2280,9 @@ func utilizationCategoriesTelemetryTableValues(outputs map[string]script.ScriptO
 		{Name: "%gnice"},
 		{Name: "%idle"},
 	}
-	reStat := regexp.MustCompile(`^(\d\d:\d\d:\d\d)\s+all\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)$`)
+	// Need this regex for AMD X86 Machine, Above regex is original
+	//	reStat := regexp.MustCompile(`^(\d{2}:\d{2}:\d{2}\s[AP]M)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)$`)
+	reStat := regexp.MustCompile(`^(\d\d:\d\d:\d\d\s[AP]M)\s+all\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)$`)
 	for line := range strings.SplitSeq(outputs[script.MpstatTelemetryScriptName].Stdout, "\n") {
 		match := reStat.FindStringSubmatch(line)
 		if len(match) == 0 {
@@ -2373,9 +2291,6 @@ func utilizationCategoriesTelemetryTableValues(outputs map[string]script.ScriptO
 		for i := range fields {
 			fields[i].Values = append(fields[i].Values, match[i+1])
 		}
-	}
-	if len(fields[0].Values) == 0 {
-		return []Field{}
 	}
 	return fields
 }
@@ -2404,9 +2319,6 @@ func irqRateTelemetryTableValues(outputs map[string]script.ScriptOutput) []Field
 		for i := range fields {
 			fields[i].Values = append(fields[i].Values, match[i+1])
 		}
-	}
-	if len(fields[0].Values) == 0 {
-		return []Field{}
 	}
 	return fields
 }
@@ -2439,9 +2351,6 @@ func driveTelemetryTableValues(outputs map[string]script.ScriptOutput) []Field {
 			}
 		}
 	}
-	if len(fields[0].Values) == 0 {
-		return []Field{}
-	}
 	return fields
 }
 
@@ -2455,7 +2364,7 @@ func networkTelemetryTableValues(outputs map[string]script.ScriptOutput) []Field
 		{Name: "txkB/s"},
 	}
 	// don't capture the last four vals: "rxcmp/s","txcmp/s","rxcmt/s","%ifutil" -- obscure more important vals
-	reStat := regexp.MustCompile(`^(\d+:\d+:\d+)\s*(\w*)\s*(\d+.\d+)\s*(\d+.\d+)\s*(\d+.\d+)\s*(\d+.\d+)\s*\d+.\d+\s*\d+.\d+\s*\d+.\d+\s*\d+.\d+$`)
+	reStat := regexp.MustCompile(`^(\d+:\d+:\d+\s[AP]M)\s*(\w*)\s*(\d+.\d+)\s*(\d+.\d+)\s*(\d+.\d+)\s*(\d+.\d+)\s*\d+.\d+\s*\d+.\d+\s*\d+.\d+\s*\d+.\d+$`)
 	for line := range strings.SplitSeq(outputs[script.NetworkTelemetryScriptName].Stdout, "\n") {
 		match := reStat.FindStringSubmatch(line)
 		if len(match) == 0 {
@@ -2464,9 +2373,6 @@ func networkTelemetryTableValues(outputs map[string]script.ScriptOutput) []Field
 		for i := range fields {
 			fields[i].Values = append(fields[i].Values, match[i+1])
 		}
-	}
-	if len(fields[0].Values) == 0 {
-		return []Field{}
 	}
 	return fields
 }
@@ -2484,7 +2390,7 @@ func memoryTelemetryTableValues(outputs map[string]script.ScriptOutput) []Field 
 		{Name: "inactive"},
 		{Name: "dirty"},
 	}
-	reStat := regexp.MustCompile(`^(\d+:\d+:\d+)\s*(\d+)\s*(\d+)\s*(\d+)\s*\d+\.\d+\s*(\d+)\s*(\d+)\s*(\d+)\s*\d+\.\d+\s*(\d+)\s*(\d+)\s*(\d+)$`)
+	reStat := regexp.MustCompile(`^(\d+:\d+:\d+\s[AP]M)\s*(\d+)\s*(\d+)\s*(\d+)\s*\d+\.\d+\s*(\d+)\s*(\d+)\s*(\d+)\s*\d+\.\d+\s*(\d+)\s*(\d+)\s*(\d+)$`)
 	for line := range strings.SplitSeq(outputs[script.MemoryTelemetryScriptName].Stdout, "\n") {
 		match := reStat.FindStringSubmatch(line)
 		if len(match) == 0 {
@@ -2493,9 +2399,6 @@ func memoryTelemetryTableValues(outputs map[string]script.ScriptOutput) []Field 
 		for i := range fields {
 			fields[i].Values = append(fields[i].Values, match[i+1])
 		}
-	}
-	if len(fields[0].Values) == 0 {
-		return []Field{}
 	}
 	return fields
 }
@@ -2525,9 +2428,6 @@ func powerTelemetryTableValues(outputs map[string]script.ScriptOutput) []Field {
 			fields[i*numPackages+1].Values = append(fields[i*numPackages+1].Values, row[1]) // Package power
 			fields[i*numPackages+2].Values = append(fields[i*numPackages+2].Values, row[2]) // DRAM power
 		}
-	}
-	if len(fields[0].Values) == 0 {
-		return []Field{}
 	}
 	return fields
 }
@@ -2566,9 +2466,6 @@ func temperatureTelemetryTableValues(outputs map[string]script.ScriptOutput) []F
 			fields[i+2].Values = append(fields[i+2].Values, row[1]) // Package temperature
 		}
 	}
-	if len(fields[0].Values) == 0 {
-		return []Field{}
-	}
 	return fields
 }
 
@@ -2577,6 +2474,62 @@ func frequencyTelemetryTableValues(outputs map[string]script.ScriptOutput) []Fie
 		{Name: "Time"},
 		{Name: "Core (Avg.)"},
 	}
+
+	stdout := outputs[script.TurbostatTelemetryScriptName].Stdout
+
+	scanner := bufio.NewScanner(strings.NewReader(stdout))
+	var currentTime string
+	var currentFrequencies []int
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, "----- SAMPLE") {
+			// If we already collected a sample, calculate and store the average
+			if len(currentFrequencies) > 0 {
+				avg := average(currentFrequencies)
+				fields[0].Values = append(fields[0].Values, currentTime)
+				fields[1].Values = append(fields[1].Values, fmt.Sprintf("%.2f", avg))
+			}
+			// Reset for next sample
+			currentFrequencies = nil
+
+			// Extract time from sample line
+			parts := strings.Split(line, "at ")
+			if len(parts) == 2 {
+				rawTime := strings.TrimSpace(parts[1])
+				currentTime = strings.Fields(rawTime)[0]
+			}
+		} else if freqVal, err := strconv.Atoi(line); err == nil {
+			currentFrequencies = append(currentFrequencies, freqVal)
+		}
+	}
+
+	// Handle the last sample
+	if len(currentFrequencies) > 0 && currentTime != "" {
+		avg := average(currentFrequencies)
+		fields[0].Values = append(fields[0].Values, currentTime)
+		fields[1].Values = append(fields[1].Values, fmt.Sprintf("%.2f", avg))
+	}
+
+	return fields
+}
+
+func average(values []int) float64 {
+	if len(values) == 0 {
+		return 0.0
+	}
+	sum := 0
+	for _, v := range values {
+		sum += v
+	}
+	return float64(sum) / float64(len(values)) / 1000.0 // convert to MHz
+}
+
+func frequencyTelemetryTableValuesx86(outputs map[string]script.ScriptOutput) []Field {
+	fields := []Field{
+		{Name: "Time"},
+		{Name: "Core (Avg.)"},
+	}
+	fmt.Println("outputs", outputs)
 	platformRows, err := turbostatPlatformRows(outputs[script.TurbostatTelemetryScriptName].Stdout, []string{"Bzy_MHz"})
 	if err != nil {
 		slog.Error(err.Error())
@@ -2605,9 +2558,6 @@ func frequencyTelemetryTableValues(outputs map[string]script.ScriptOutput) []Fie
 			// append the package frequency to the fields
 			fields[i+2].Values = append(fields[i+2].Values, row[1]) // Package frequency
 		}
-	}
-	if len(fields[0].Values) == 0 {
-		return []Field{}
 	}
 	return fields
 }
