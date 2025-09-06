@@ -1,0 +1,6 @@
+[
+    {
+        "name": "CPI",
+        "expression": "[cpu-cycles] / [instructions]"
+    }
+]

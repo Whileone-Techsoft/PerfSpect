@@ -1,0 +1,7 @@
+# Neovers-N1 event list
+
+cache-misses,
+branch-instructions,
+cpu-cycles,
+instructions;
+

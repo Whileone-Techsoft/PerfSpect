@@ -9,10 +9,10 @@ set -ex
 TAG=v1
 
 # build tools image
-docker build -f tools/build.Dockerfile --tag perfspect-tools:$TAG ./tools
+#docker build -f tools/build.Dockerfile --tag perfspect-tools:$TAG ./tools
 
 # build the perfspect builder image
-docker build -f builder/build.Dockerfile --build-arg TAG=$TAG --tag perfspect-builder:$TAG .
+#docker build -f builder/build.Dockerfile --build-arg TAG=$TAG --tag perfspect-builder:$TAG .
 
 # build perfspect using the builder image
 docker container run                                  \
@@ -20,4 +20,4 @@ docker container run                                  \
     -w /localrepo                                     \
     --rm                                              \
     perfspect-builder:$TAG                            \
-    make dist
+    bash -c "git config --global --add safe.directory /localrepo && make dist"

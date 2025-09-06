@@ -39,7 +39,11 @@ func SetMuxIntervals(myTarget target.Target, intervals map[string]int, localTemp
 	for device := range intervals {
 		bash += fmt.Sprintf("echo %d > %s; ", intervals[device], device)
 	}
-	_, err = script.RunScript(myTarget, script.ScriptDefinition{Name: "set mux intervals", ScriptTemplate: bash, Superuser: true}, localTempDir)
+	scriptOutput, err := script.RunScript(myTarget, script.ScriptDefinition{Name: "set mux intervals", ScriptTemplate: bash, Superuser: true}, localTempDir) // nosemgrep
+	if err != nil {
+		err = fmt.Errorf("failed to set mux interval on device: %s, %d, %v", scriptOutput.Stderr, scriptOutput.Exitcode, err)
+		return
+	}
 	return
 }
 
@@ -47,5 +51,8 @@ func SetMuxIntervals(myTarget target.Target, intervals map[string]int, localTemp
 func SetAllMuxIntervals(myTarget target.Target, interval int, localTempDir string) (err error) {
 	bash := fmt.Sprintf("for file in $(find /sys/devices -type f -name perf_event_mux_interval_ms); do echo %d > $file; done", interval)
 	_, err = script.RunScript(myTarget, script.ScriptDefinition{Name: "set all mux intervals", ScriptTemplate: bash, Superuser: true}, localTempDir)
+	if err != nil {
+		return
+	}
 	return
 }

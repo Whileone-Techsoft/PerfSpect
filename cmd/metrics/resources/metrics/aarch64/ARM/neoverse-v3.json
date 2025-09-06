@@ -1,0 +1,104 @@
+[
+        {
+                "Metrics": [
+                        {
+                                "MetricName": "Frontend_Bound",
+                                "LegacyName": "Frontend_.(%)",
+                                "Level": 1,
+                                "UnitOfMeasure": "percent",
+                                "Events": [
+                                        {
+                                                "Name": "cpu-cycles",
+                                                "Alias": "a"
+                                        },
+                                        {
+                                                "Name": "op_spec",
+                                                "Alias": "b"
+                                        },
+                                        {
+                                                "Name": "stall_slot_backend",
+                                                "Alias": "c"
+                                        }
+
+                                ],
+                                "Constants": [],
+                                "Formula": "100 * ((a * 8) - b - c) / (a * 4)",
+                                "BaseFormula": "100 * (([cpu-cycles] * 8) - [op_spec] - [stall_slot_backend]) / ([cpu-cycles] * 4) ",
+                                "Category": "TMA",
+                                "CountDomain": "Slots"
+                        },
+                        {
+                                "MetricName": "Backend_Bound",
+                                "LegacyName": "Backend_.(%)",
+                                "Level": 1,
+                                "UnitOfMeasure": "percent",
+                                "Events": [
+                                        {
+                                                "Name": "cpu-cycles",
+                                                "Alias": "a"
+                                        },
+                                        {
+                                                "Name": "stall_slot_backend",
+                                                "Alias": "b"
+                                        }
+
+                                ],
+                                "Constants": [],
+                                "Formula": "100 * (b / (a * 4))",
+                                "BaseFormula": "100 * [stall_slot_backend] / ([cpu-cycles] * 4) ",
+                                "Category": "TMA",
+                                "CountDomain": "Slots"
+                        },
+                        {
+                                "MetricName": "lost",
+                                "LegacyName": "lost_.(%)",
+                                "Level": 1,
+                                "UnitOfMeasure": "percent",
+                                "Events": [
+                                        {
+                                                "Name": "cpu-cycles",
+                                                "Alias": "a"
+                                        },
+                                        {
+                                                "Name": "op_spec",
+                                                "Alias": "b"
+                                        },
+                                        {
+                                                "Name": "op_retired",
+                                                "Alias": "c"
+                                        }
+
+
+                                ],
+                                "Constants": [],
+                                "Formula": "100 * ((b-c) / (a * 4))",
+                                "BaseFormula": "100 * ([op_spec] - [op_retired]) / ([cpu-cycles] * 4)",
+                                "Category": "TMA",
+                                "CountDomain": "Slots"
+                        },
+                         {
+                                "MetricName": "Retired",
+                                "LegacyName": "retired_.(%)",
+                                "Level": 1,
+                                "UnitOfMeasure": "percent",
+                                "Events": [
+                                        {
+                                                "Name": "cpu-cycles",
+                                                "Alias": "a"
+                                        },
+                                        {
+                                                "Name": "op_retired",
+                                                "Alias": "b"
+                                        }
+
+                                ],
+                                "Constants": [],
+                                "Formula": "100 * (b / (a * 4))",
+                                "BaseFormula": "100 * [op_retired] / ([cpu-cycles] * 4)",
+                                "Category": "TMA",
+                                "CountDomain": "Slots"
+                        }
+
+                ]
+        }
+]

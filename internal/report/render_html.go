@@ -326,6 +326,16 @@ const datasetTemplate = `
 	showLine: true
 }
 `
+
+const heatmapTemplate = `
+{
+  datasets: [{
+    label: "CPU Heatmap",
+    data: {{.Datasets}},
+  }]
+};
+`
+
 const lineChartTemplate = `<div class="chart-container" style="max-width: 900px">
 <canvas id="{{.ID}}"></canvas>
 </div>
@@ -431,6 +441,145 @@ new Chart(document.getElementById('{{.ID}}'), {
         }
     }
 });
+</script>
+`
+
+const heatmapChartTemplate = `
+<div class="chart-container" style="max-width: 900px">
+  <div id="{{.ID}}"></div>
+</div>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script>
+(function() {
+  const data = {{.Datasets}}; // expects JSON array of {core, time, value}
+
+  const margin = {top: 60, right: 60, bottom: 50, left: 90},
+        width = 900 - margin.left - margin.right,
+        height = 400 - margin.top - margin.bottom;
+
+  const svg = d3.select("#{{.ID}}")
+    .append("svg")
+    .attr("width", width + margin.left + margin.right + 60) // extra for legend
+    .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+  const xLabels = [...new Set(data.map(d => d.time))];
+  const yLabels = [...new Set(data.map(d => d.core))];
+
+  const x = d3.scaleBand()
+    .range([0, width])
+    .domain(xLabels)
+    .padding(0);
+
+  const y = d3.scaleBand()
+    .range([height, 0])
+    .domain(yLabels)
+    .padding(0);
+
+  svg.append("g")
+    .attr("transform", "translate(0," + height + ")")
+    .call(d3.axisBottom(x).tickSize(0))
+    .selectAll("text")
+    .style("font-size", "10px")
+    .style("text-anchor", "end")
+    .attr("transform", "rotate(-45)");
+
+    const maxLabelCount = Math.floor(height / 15);
+    const skipInterval = Math.ceil(yLabels.length / maxLabelCount);
+
+  svg.append("g")
+    .call(d3.axisLeft(y).tickFormat((d, i) => (i % skipInterval === 0 ? d : "")).tickSize(0))
+    .selectAll("text")
+    .style("font-size", "10px");
+
+  const colorScale = d3
+    .scaleLinear()
+    .domain([0, 50, 100])
+    .range(["#0E15B3", "#C0BDBB", "#E08455", "#B20A1C"]);
+
+  const tooltip = d3.select("#{{.ID}}")
+    .append("div")
+    .style("opacity", 0)
+    .style("position", "absolute")
+    .style("background", "#333")
+    .style("color", "#fff")
+    .style("padding", "6px 10px")
+    .style("border-radius", "4px")
+    .style("font-size", "12px");
+
+  svg.selectAll()
+    .data(data)
+    .enter()
+    .append("rect")
+    .attr("x", d => x(d.time))
+    .attr("y", d => y(d.core))
+    .attr("width", x.bandwidth())
+    .attr("height", y.bandwidth())
+    .style("fill", d => colorScale(d.value))
+    .on("mouseover", function(event, d) {
+      tooltip.style("opacity", 1)
+             .html(d.core + " @ " + d.time + "<br>Value: " + d.value.toFixed(2))
+             .style("left", (event.pageX + 10) + "px")
+             .style("top", (event.pageY - 28) + "px");
+    })
+    .on("mouseout", () => tooltip.style("opacity", 0));
+
+  svg.append("text")
+    .attr("x", width / 2)
+    .attr("y", -margin.top / 2)
+    .attr("text-anchor", "middle")
+    .style("font-size", "18px")
+    .style("font-weight", "bold")
+    .text("{{.TitleText}}");
+
+  // --- LEGEND ---
+  const legendHeight = 200;
+  const legendWidth = 20;
+
+  const defs = svg.append("defs");
+  const gradient = defs.append("linearGradient")
+    .attr("id", "legend-gradient")
+    .attr("x1", "0%")
+    .attr("y1", "100%")
+    .attr("x2", "0%")
+    .attr("y2", "0%");
+
+  gradient.append("stop")
+    .attr("offset", "0%")
+    .attr("stop-color", "#0E15B3");
+  gradient
+    .append("stop")
+    .attr("offset", "50%")
+    .attr("stop-color", "#C0BDBB");
+  gradient
+    .append("stop")
+    .attr("offset", "70%")
+    .attr("stop-color", "#E08455");
+  gradient.append("stop")
+    .attr("offset", "100%")
+    .attr("stop-color", "#B20A1C");
+
+  const legendGroup = svg.append("g")
+    .attr("transform", "translate(" + (width + 40) + ", " + ((height - legendHeight) / 2) + ")");
+
+  legendGroup.append("rect")
+    .attr("width", legendWidth)
+    .attr("height", legendHeight)
+    .style("fill", "url(#legend-gradient)")
+    .style("stroke", "#999")
+    .style("stroke-width", "1");
+
+  const legendScale = d3.scaleLinear()
+    .domain([0, 100])
+    .range([legendHeight, 0]);
+
+  legendGroup.append("g")
+    .attr("transform", "translate(" + legendWidth + ", 0)")
+    .call(d3.axisRight(legendScale).ticks(5))
+    .selectAll("text")
+    .style("font-size", "10px");
+})();
 </script>
 `
 
@@ -642,6 +791,7 @@ func dimmTableHTMLRenderer(tableValues TableValues, targetName string) string {
 	return renderHTMLTable(socketTableHeaders, socketTableValues, "pure-table pure-table-bordered", [][]string{})
 }
 
+/*
 func renderChart(chartType string, allFormattedPoints []string, datasetNames []string, xAxisLabels []string, config chartTemplateStruct) string {
 	datasets := []string{}
 	for dataIdx, formattedPoints := range allFormattedPoints {
@@ -694,9 +844,90 @@ func renderChart(chartType string, allFormattedPoints []string, datasetNames []s
 	return out
 }
 
+*/
+
+func renderChart(chartType string, allFormattedPoints []string, datasetNames []string, xAxisLabels []string, config chartTemplateStruct) string {
+	var chartTemplate string
+	switch chartType {
+	case "line":
+		chartTemplate = lineChartTemplate
+	case "scatter":
+		chartTemplate = scatterChartTemplate
+	case "heatmap":
+		chartTemplate = heatmapChartTemplate
+	default:
+		panic("unknown chart type")
+	}
+
+	// Only build datasets if it's not heatmap
+	if chartType != "heatmap" {
+		datasets := []string{}
+		for dataIdx, formattedPoints := range allFormattedPoints {
+			dst := texttemplate.Must(texttemplate.New("datasetTemplate").Parse(datasetTemplate))
+			buf := new(bytes.Buffer)
+			err := dst.Execute(buf, struct {
+				Label string
+				Data  string
+				Color string
+			}{
+				Label: datasetNames[dataIdx],
+				Data:  formattedPoints,
+				Color: getColor(dataIdx),
+			})
+			if err != nil {
+				slog.Error("error executing dataset template", slog.String("error", err.Error()))
+				return "Error rendering chart."
+			}
+			datasets = append(datasets, buf.String())
+		}
+		config.Datasets = strings.Join(datasets, ",")
+	}
+
+	// Labels are only used for line chart
+	if chartType == "line" {
+		config.Labels = func() string {
+			var labels []string
+			for _, label := range xAxisLabels {
+				labels = append(labels, fmt.Sprintf("'%s'", label))
+			}
+			return strings.Join(labels, ",")
+		}()
+	}
+
+	// Render the full chart template
+	buf := new(bytes.Buffer)
+	sct := texttemplate.Must(texttemplate.New("chartTemplate").Parse(chartTemplate))
+	err := sct.Execute(buf, config)
+	if err != nil {
+		slog.Error("error executing chart template", slog.String("error", err.Error()))
+		return "Error rendering chart."
+	}
+
+	return buf.String() + "\n"
+}
+
 type scatterPoint struct {
 	x float64
 	y float64
+}
+
+type heatmapPoint struct {
+	Core  string
+	Time  string
+	Value float64
+}
+
+func renderHeatmapChart(data []heatmapPoint, config chartTemplateStruct) string {
+	// Build the dataset JSON string
+	formattedPoints := make([]string, 0, len(data))
+	for _, point := range data {
+		formattedPoints = append(formattedPoints, fmt.Sprintf(`{"core": "%s", "time": "%s", "value": %f}`, point.Core, point.Time, point.Value))
+	}
+
+	config.Datasets = "[" + strings.Join(formattedPoints, ",") + "]"
+
+	// Render the heatmap
+	return renderChart("heatmap", nil, nil, nil, config)
 }
 
 func renderScatterChart(data [][]scatterPoint, datasetNames []string, config chartTemplateStruct) string {
@@ -885,6 +1116,43 @@ func cpuUtilizationTelemetryTableHTMLRenderer(tableValues TableValues, targetNam
 		SuggestedMax:  "100",
 	}
 	return telemetryTableHTMLRenderer(tableValues, data, datasetNames, chartConfig)
+}
+
+func cpuUtilizationHeatmapRenderer(tableValues TableValues, targetName string) string {
+	// Parse values into a flat list of heatmapPoint
+	var data []heatmapPoint
+	tsFieldIdx := 0                             // assuming timestamp is the first field
+	cpuFieldIdx := 1                            // assuming CPU core ID is second field
+	idleFieldIdx := len(tableValues.Fields) - 1 // assuming idle is the last field
+	//    fmt.Println("test", tableValues)
+
+	for i := range tableValues.Fields[0].Values {
+		timestamp := tableValues.Fields[tsFieldIdx].Values[i]
+		cpu := tableValues.Fields[cpuFieldIdx].Values[i]
+		idleStr := tableValues.Fields[idleFieldIdx].Values[i]
+
+		idle, err := strconv.ParseFloat(idleStr, 64)
+		if err != nil {
+			continue
+		}
+
+		busy := 100 - idle
+
+		data = append(data, heatmapPoint{
+			Core:  fmt.Sprintf("CPU %s", cpu),
+			Time:  timestamp,
+			Value: busy,
+		})
+	}
+
+	chartConfig := chartTemplateStruct{
+		ID:           fmt.Sprintf("cpu_util_heatmap_%d", util.RandUint(10000)),
+		TitleText:    "CPU Utilization Heatmap",
+		DisplayTitle: "true",
+		AspectRatio:  "3",
+	}
+
+	return renderHeatmapChart(data, chartConfig)
 }
 
 func utilizationCategoriesTelemetryTableHTMLRenderer(tableValues TableValues, targetName string) string {
@@ -1114,6 +1382,58 @@ func memoryTelemetryTableHTMLRenderer(tableValues TableValues, targetName string
 }
 
 func averageFrequencyTelemetryTableHTMLRenderer(tableValues TableValues, targetName string) string {
+	avgFreqData := []float64{}
+	timeLabels := []string{}
+
+	for i, timeVal := range tableValues.Fields[0].Values {
+		var sum float64
+		var count int
+
+		for _, field := range tableValues.Fields[1:] {
+			if i >= len(field.Values) {
+				continue
+			}
+			val := field.Values[i]
+			if val == "" {
+				continue
+			}
+			freqKHz, err := strconv.ParseFloat(val, 64)
+			if err != nil {
+				slog.Error("error parsing frequency value", slog.String("value", val), slog.String("error", err.Error()))
+				continue
+			}
+			sum += freqKHz
+			count++
+		}
+
+		if count > 0 {
+			avgFreqMHz := sum / float64(count) / 1000.0 // Convert to MHz
+			avgFreqData = append(avgFreqData, avgFreqMHz)
+			timeLabels = append(timeLabels, timeVal)
+		}
+	}
+
+	chartConfig := chartTemplateStruct{
+		ID:            fmt.Sprintf("%s%d", tableValues.Name, util.RandUint(10000)),
+		XaxisText:     "Time",
+		YaxisText:     "Average Frequency (GHz)",
+		TitleText:     fmt.Sprintf("Average Frequency for %s", targetName),
+		DisplayTitle:  "true",
+		DisplayLegend: "false",
+		AspectRatio:   "2",
+		SuggestedMin:  "0",
+		SuggestedMax:  "0",
+	}
+
+	return telemetryTableHTMLRenderer(
+		tableValues,
+		[][]float64{avgFreqData},
+		[]string{"Average Frequency"},
+		chartConfig,
+	)
+}
+
+func averageFrequencyTelemetryTableHTMLRenderer_x86(tableValues TableValues, targetName string) string {
 	data := [][]float64{}
 	datasetNames := []string{}
 	for _, field := range tableValues.Fields[1:] {

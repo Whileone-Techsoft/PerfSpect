@@ -1,0 +1,11 @@
+# Neoverse-V2 event list
+
+inst_retired,
+cpu-cycles,
+stall_slot_frontend,
+stall_slot_backend,
+op_spec,
+op_retired,
+br_mis_pred,
+stall_slot;
+

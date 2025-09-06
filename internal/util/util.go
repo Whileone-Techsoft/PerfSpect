@@ -25,7 +25,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"unicode"
 )
 
 // ExpandUser expands '~' to user's home directory, if found, otherwise returns original path
@@ -260,14 +259,12 @@ func ExtractResource(resources embed.FS, resourcePath string, tempDir string) (s
 	return outPath, nil
 }
 
-// UniqueAppend appends items to a slice if they are not already present
-func UniqueAppend[T comparable](slice []T, items ...T) []T {
-	for _, item := range items {
-		if !slices.Contains(slice, item) {
-			slice = append(slice, item)
-		}
+// UniqueAppend appends an item to a slice if it is not already present
+func UniqueAppend[T comparable](slice []T, item T) []T {
+	if slices.Contains(slice, item) {
+		return slice
 	}
-	return slice
+	return append(slice, item)
 }
 
 // MergeOrderedUnique merges a slice of slices of type T, maintaining order and inserting new items in the order found in subsequent slices.
@@ -767,64 +764,4 @@ func IsUint64BitSet(x uint64, bit int) (bool, error) {
 		return false, fmt.Errorf("bit must be between 0 and 63, got %d", bit)
 	}
 	return (x & (1 << bit)) != 0, nil
-}
-
-// ReplaceWholeWord replaces occurrences of 'old' with 'new' in 'str', but only when 'old'
-// appears as a whole word (not as part of another word). This is equivalent to regex \b word \b
-// but much faster as it avoids regex compilation.
-func ReplaceWholeWord(str, old, new string) string {
-	if old == "" {
-		return str
-	}
-
-	result := strings.Builder{}
-	result.Grow(len(str) + len(new) - len(old)) // Pre-allocate approximate capacity
-
-	oldLen := len(old)
-	for i := 0; i < len(str); {
-		// Check if we found the target string at current position
-		if i+oldLen <= len(str) && str[i:i+oldLen] == old {
-			// Check if it's a whole word by examining boundaries
-			isWholeWord := true
-
-			// Check character before (if exists)
-			if i > 0 {
-				prevChar := rune(str[i-1])
-				if unicode.IsLetter(prevChar) || unicode.IsDigit(prevChar) || prevChar == '_' {
-					isWholeWord = false
-				}
-			}
-
-			// Check character after (if exists)
-			if isWholeWord && i+oldLen < len(str) {
-				nextChar := rune(str[i+oldLen])
-				if unicode.IsLetter(nextChar) || unicode.IsDigit(nextChar) || nextChar == '_' {
-					isWholeWord = false
-				}
-			}
-
-			if isWholeWord {
-				result.WriteString(new)
-				i += oldLen
-			} else {
-				result.WriteByte(str[i])
-				i++
-			}
-		} else {
-			result.WriteByte(str[i])
-			i++
-		}
-	}
-
-	return result.String()
-}
-
-// ContainsIgnoreCase checks if a slice of strings contains a given string, ignoring case.
-func ContainsIgnoreCase(slice []string, str string) bool {
-	for _, item := range slice {
-		if strings.EqualFold(item, str) {
-			return true
-		}
-	}
-	return false
 }

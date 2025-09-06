@@ -97,12 +97,13 @@ func l3PerCoreFromOutput(outputs map[string]script.ScriptOutput) string {
 		return ""
 	}
 	coresPerSocket, err := strconv.Atoi(valFromRegexSubmatch(outputs[script.LscpuScriptName].Stdout, `^Core\(s\) per socket.*:\s*(.+?)$`))
-	if err != nil {
+	if err != nil || coresPerSocket == 0 {
 		slog.Error("failed to parse cores per socket", slog.String("error", err.Error()))
 		return ""
 	}
-	if coresPerSocket == 0 {
-		slog.Error("cores per socket is zero")
+	numSockets, err := strconv.Atoi(valFromRegexSubmatch(outputs[script.LscpuScriptName].Stdout, `^Socket\(s\):\s*(.+)$`))
+	if err != nil || numSockets == 0 {
+		slog.Error("failed to parse sockets", slog.String("error", err.Error()))
 		return ""
 	}
 	var l3PerCoreMB float64

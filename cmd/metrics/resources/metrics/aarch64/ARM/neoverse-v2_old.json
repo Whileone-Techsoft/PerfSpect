@@ -1,0 +1,32 @@
+[
+    {
+        "name": "IPC",
+        "expression": "[instructions] / [cpu-cycles]"
+    },
+    {
+        "name": "frontend",
+        "expression": "100 * (([cpu-cycles] * 8) - [op_spec] - [stall_slot_backend]) / ([cpu-cycles] * 4)"
+    },
+    {
+    	"name": "backend",
+	"expression": "100 * [stall_slot_backend] / ([cpu-cycles] * 4)"
+    
+    },
+    {
+	"name": "lost",
+        "expression": "100 * ([op_spec] - [op_retired]) / ([cpu-cycles] * 4)"	
+    },
+    {
+	"name": "op_retired",
+        "expression": "100 * [op_retired] / ([cpu-cycles] * 4)"	
+    },
+    {
+	"name": "retired",
+        "expression": "100 * [op_retired] / ([cpu-cycles] * 4)"	
+    
+    },
+    {
+        "name": "CPI",
+        "expression": "[cpu-cycles] / [instructions]"
+    }
+]
