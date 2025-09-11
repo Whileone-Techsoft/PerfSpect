@@ -35,5 +35,6 @@
     {
 	"name":"memory bandwidth write (MB/sec)",
 	"expression": "([bus_access_wr] * 64 * 2800000000 )/ ([cpu-cycles] * 1000000)"
+
     }
 ]

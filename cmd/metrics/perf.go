@@ -117,7 +117,7 @@ func getPerfCommandArgs(pids []string, cgroups []string, timeout int, eventGroup
 		for _, event := range group {
 			events = append(events, event.Raw)
 		}
-		groups = append(groups, fmt.Sprintf("{%s}", strings.Join(events, ",")))
+		groups = append(groups, fmt.Sprintf("%s", strings.Join(events, ",")))
 	}
 	args = append(args, fmt.Sprintf("'%s'", strings.Join(groups, ",")))
 	if len(argsApplication) > 0 {

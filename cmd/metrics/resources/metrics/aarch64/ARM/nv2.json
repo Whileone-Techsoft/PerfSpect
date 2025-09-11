@@ -15,25 +15,5 @@
     {
 	"name": "RETIRING",
 	"expression": "100 * ( [op_retired] / [op_spec] * (1 - [stall_slot] / ( [cpu-cycles] * 8)))"
-    },
-    {
-	"name": "BRANCH_MPKI",
-	"expression": "([br_mis_pred_retired] / ([instructions] * 1000))"
-    },
-    {
-	"name": "IPC",
-	"expression": "[instructions] / [cpu-cycles]"
-    },
-    {
-	"name": "CPI",
-	"expression": "[cpu-cycles] / [instructions] "
-    },
-    {
-	"name":"memory bandwidth read (MB/sec)",
-	"expression": "([bus_access_rd] * 64 * 2800000000 )/ ([cpu-cycles] * 1000000)"
-    },
-    {
-	"name":"memory bandwidth write (MB/sec)",
-	"expression": "([bus_access_wr] * 64 * 2800000000 )/ ([cpu-cycles] * 1000000)"
     }
 ]

@@ -42,8 +42,9 @@ endif
 endif
 
 # Build the distribution package
+#dist: resources check perfspect perfspect-aarch64
 .PHONY: dist
-dist: resources check perfspect perfspect-aarch64
+dist: resources perfspect perfspect-aarch64
 	rm -rf dist/perfspect
 	mkdir -p dist/perfspect/tools/x86_64
 	mkdir -p dist/perfspect/tools/aarch64

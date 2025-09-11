@@ -286,22 +286,22 @@
           {
             name: "Front-end",
             type: 'line',
-            data: <<.TMAFRONTEND>>,
+            data: <<.FRONTEND>>,
           },
           {
             name: "Back-end",
             type: 'line',
-            data: <<.TMABACKEND>>,
+            data: <<.BACKEND>>,
           },
           {
             name: "Retiring",
             type: 'line',
-            data: <<.TMARETIRING>>,
+            data: <<.RETIRING>>,
           },
           {
-            name: "Bad Speculation",
+            name: "Lost",
             type: 'line',
-            data: <<.TMABADSPECULATION>>,
+            data: <<.LOST>>,
           },
         ]
       }
@@ -533,60 +533,20 @@
                       },
                       data: [
                       {
-			  name: "<<.TMA_FRONTEND>>",
-			  value: Math.round(<<.FRONTEND>> * 10) / 10,
-                          children:[
-                            {
-			      name: "<<.TMA_FETCHBANDWIDTH>>",
-			      value: Math.round(<<.FETCHBANDWIDTH>> * 10) / 10,
-                            },
-                            {
-			      name: "<<.TMA_FETCHLATENCY>>",
-			      value: Math.round(<<.FETCHLATENCY>> * 10) / 10,
-                            },
-                          ]
+			  name: "<<.TMAFRONTEND>>",
+			  value: Math.round(<<.TMA_FRONTEND>> * 10) / 10,
                         },
                         {
-			  name: "<<.TMA_BADSPECULATION>>",
-			  value: Math.round(<<.BADSPECULATION>> * 10) / 10,
-                          children: [
-                            {
-			      name: "<<.TMA_BRANCHMISPREDICTS>>",
-			      value: Math.round(<<.BRANCHMISPREDICTS>> * 10) / 10,
-                            },
-                            {
-			      name: "<<.TMA_MACHINECLEARS>>",
-			      value: Math.round(<<.MACHINECLEARS>> * 10) / 10,
-                            },
-                          ]
+			  name: "<<.TMALOST>>",
+			  value: Math.round(<<.TMA_LOST>> * 10) / 10,
                         },
                         {
-			  name: "<<.TMA_BACKEND>>",
-			  value: Math.round(<<.BACKEND>> * 10) / 10,
-                          children: [
-                            {
-			      name: "<<.TMA_CORE>>",
-			      value: Math.round(<<.COREDATA>> * 10) / 10,
-                            },
-                            {
-			      name: "<<.TMA_MEMORY>>",
-			      value: Math.round(<<.MEMORY>> * 10) / 10,
-                            },
-                          ],
+			  name: "<<.TMABACKEND>>",
+			  value: Math.round(<<.TMA_BACKEND>> * 10) / 10,
                         },
                         {
-			  name: "<<.TMA_RETIRING>>",
-			  value: Math.round(<<.RETIRING>> * 10) / 10,
-                          children: [
-                            {
-			      name: "<<.TMA_LIGHTOPS>>",
-			      value: Math.round(<<.LIGHTOPS>> * 10) / 10,
-                            },
-                            {
-			      name: "<<.TMA_HEAVYOPS>>",
-			      value: Math.round(<<.HEAVYOPS>> * 10) / 10,
-                            },
-                          ]
+			  name: "<<.TMARETIRING>>",
+			  value: Math.round(<<.TMA_RETIRING>> * 10) / 10,
                         },
                       ],
                       radius: [20, "100%"],

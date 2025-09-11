@@ -16,21 +16,22 @@ ENV https_proxy=${https_proxy}
 ENV LANG=en_US.UTF-8
 ARG DEBIAN_FRONTEND=noninteractive
 ARG GO_VERSION=1.24.5
-RUN apt-get update && apt-get install -y apt-utils locales wget curl git netcat-openbsd software-properties-common jq zip unzip
+RUN apt-get update
+RUN apt-get install --fix-missing -y apt-utils locales wget curl git netcat-openbsd software-properties-common jq zip unzip
 RUN locale-gen en_US.UTF-8 &&  echo "LANG=en_US.UTF-8" > /etc/default/locale
 RUN for i in {1..5}; do \
         add-apt-repository ppa:git-core/ppa -y && break; \
         echo "Retrying in 5 seconds... ($i/5)" && sleep 5; \
     done
 RUN for i in {1..5}; do \
-        apt-get update && apt-get install -y git build-essential autotools-dev automake gcc\
+        apt-get update && apt-get install --fix-missing --fix-broken -y git build-essential autotools-dev automake gcc\
         gawk zlib1g-dev libtool libaio-dev libaio1 pandoc pkgconf libcap-dev docbook-utils \
         libreadline-dev default-jre default-jdk cmake flex bison gettext libssl-dev \
         && break; \
         echo "Retrying in 5 seconds... ($i/5)" && sleep 5; \
     done
 RUN ulimit -n 4096 && for i in {1..5}; do \
-	apt-get update && apt-get install -y \
+	apt-get update && apt-get install --fix-missing --fix-broken -y \
 	libbabeltrace-dev libbpf-dev libc6 libcap-dev libdw-dev libdwarf-dev libelf-dev \
 	libiberty-dev liblzma-dev libnuma-dev libperl-dev libpfm4-dev libreadline-dev \
 	libslang2-dev libssl-dev libtool libtraceevent-dev libunwind-dev libzstd-dev \
@@ -39,7 +40,11 @@ RUN ulimit -n 4096 && for i in {1..5}; do \
 	&& break; \
 	echo "Retrying in 5 seconds... ($i/5)" && sleep 5; \
 	done
- 
+
+RUN apt install --fix-broken -y
+RUN apt install -y libstdc++-11-dev libavahi-client3 automake liblzma-dev libelf-dev libdw-dev --fix-broken 
+RUN apt install -y python3 python3-dev
+
 ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-arm64
 # need golang to build go tools
 RUN rm -rf /usr/local/go && wget -qO- https://go.dev/dl/go${GO_VERSION}.linux-arm64.tar.gz | tar -C /usr/local -xz

@@ -321,18 +321,10 @@ func (m *metricsFromCSV) loadHTMLTemplateValues(metadata Metadata) (templateVals
 	// TMA Tab's pie chart
 	// these are intended to be replaced with pie headers in html report
 	templateNameReplace := []tmplReplace{
-		{"TMA_FRONTEND", []string{"Frontend", "Frontend"}},
-		{"TMA_FETCHLATENCY", []string{"Fetch Latency", "Latency"}},
-		{"TMA_FETCHBANDWIDTH", []string{"Fetch Bandwidth", "Bandwidth"}},
-		{"TMA_BADSPECULATION", []string{"Bad Speculation", "Bad Speculation"}},
-		{"TMA_BRANCHMISPREDICTS", []string{"Branch Mispredicts", "Mispredicts"}},
-		{"TMA_MACHINECLEARS", []string{"Machine Clears", "Pipeline Restarts"}},
-		{"TMA_BACKEND", []string{"Backend", "Backend"}},
-		{"TMA_CORE", []string{"Core", "CPU"}},
-		{"TMA_MEMORY", []string{"Memory", "Memory"}},
-		{"TMA_RETIRING", []string{"Retiring", "Retiring"}},
-		{"TMA_LIGHTOPS", []string{"Light Operations", "Fastpath"}},
-		{"TMA_HEAVYOPS", []string{"Heavy Operations", "Microcode"}},
+		{"TMAFRONTEND", []string{"Frontend", "Frontend"}},
+		{"TMALOST", []string{"Lost", "Lost"}},
+		{"TMABACKEND", []string{"Backend", "Backend"}},
+		{"TMARETIRING", []string{"Retiring", "Retiring"}},
 	}
 	// replace the template variables with the name header of the metric
 	for _, tmpl := range templateNameReplace {
@@ -345,18 +337,10 @@ func (m *metricsFromCSV) loadHTMLTemplateValues(metadata Metadata) (templateVals
 	// TMA Tab's pie chart
 	// these are intended to be replaced with the mean value of the metric
 	templateReplace := []tmplReplace{
-		{"FRONTEND", []string{"TMA_Frontend_Bound(%)", "Pipeline Utilization - Frontend Bound (%)"}},
-		{"FETCHLATENCY", []string{"TMA_..Fetch_Latency(%)", "Pipeline Utilization - Frontend Bound - Latency (%)"}},
-		{"FETCHBANDWIDTH", []string{"TMA_..Fetch_Bandwidth(%)", "Pipeline Utilization - Frontend Bound - Bandwidth (%)"}},
-		{"BADSPECULATION", []string{"TMA_Bad_Speculation(%)", "Pipeline Utilization - Bad Speculation (%)"}},
-		{"BRANCHMISPREDICTS", []string{"TMA_..Branch_Mispredicts(%)", "Pipeline Utilization - Bad Speculation - Mispredicts (%)"}},
-		{"MACHINECLEARS", []string{"TMA_..Machine_Clears(%)", "Pipeline Utilization - Bad Speculation - Pipeline Restarts (%)"}},
-		{"BACKEND", []string{"TMA_Backend_Bound(%)", "Pipeline Utilization - Backend Bound (%)"}},
-		{"COREDATA", []string{"TMA_..Core_Bound(%)", "Pipeline Utilization - Backend Bound - CPU (%)"}},
-		{"MEMORY", []string{"TMA_..Memory_Bound(%)", "Pipeline Utilization - Backend Bound - Memory (%)"}},
-		{"RETIRING", []string{"TMA_Retiring(%)", "Pipeline Utilization - Retiring (%)"}},
-		{"LIGHTOPS", []string{"TMA_..Light_Operations(%)", "Pipeline Utilization - Retiring - Fastpath (%)"}},
-		{"HEAVYOPS", []string{"TMA_..Heavy_Operations(%)", "Pipeline Utilization - Retiring - Microcode (%)"}},
+		{"TMA_FRONTEND", []string{"FRONTEND"}},
+		{"TMA_LOST", []string{"LOST"}},
+		{"TMA_BACKEND", []string{"BACKEND"}},
+		{"TMA_RETIRING", []string{"RETIRING"}},
 	}
 	// replace the template variables with the mean value of the metric
 	for _, tmpl := range templateReplace {
@@ -375,10 +359,10 @@ func (m *metricsFromCSV) loadHTMLTemplateValues(metadata Metadata) (templateVals
 	// these get the series data for the graphs
 	templateReplace = []tmplReplace{
 		// TMAM Tab
-		{"TMAFRONTEND", []string{"TMA_Frontend_Bound(%)", "Pipeline Utilization - Frontend Bound (%)"}},
-		{"TMABACKEND", []string{"TMA_Backend_Bound(%)", "Pipeline Utilization - Backend Bound (%)"}},
-		{"TMARETIRING", []string{"TMA_Retiring(%)", "Pipeline Utilization - Retiring (%)"}},
-		{"TMABADSPECULATION", []string{"TMA_Bad_Speculation(%)", "Pipeline Utilization - Bad Speculation (%)"}},
+		{"FRONTEND", []string{"FRONTEND", "Pipeline Utilization - Frontend Bound (%)"}},
+		{"BACKEND", []string{"BACKEND", "Pipeline Utilization - Backend Bound (%)"}},
+		{"RETIRING", []string{"RETIRING", "Pipeline Utilization - Retiring (%)"}},
+		{"LOST", []string{"LOST", "Pipeline Utilization - Lost (%)"}},
 		// CPU Tab
 		{"CPUUTIL", []string{"CPU utilization %", "CPU utilization %"}},
 		{"CPIDATA", []string{"CPI", "CPI"}},

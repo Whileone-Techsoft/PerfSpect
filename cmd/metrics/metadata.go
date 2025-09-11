@@ -114,36 +114,36 @@ func LoadMetadata(myTarget target.Target, noRoot bool, noSystemSummary bool, per
 	fmt.Printf("DEBUG: Raw Socket(s): %q\n", cpuData["Socket(s)"])
 	fmt.Printf("DEBUG: Raw Thread(s) per core: %q\n", cpuData["Thread(s) per core"])
 	fmt.Printf("DEBUG: Model name: %q\n", metadata.ModelName)
-	fmt.Printf("DEBUG: Vendor ID: %q\n", metadata.Vendor)	
-	
-/*
-	// Core Count (per socket) (from cpuInfo)
-	metadata.CoresPerSocket, err = strconv.Atoi(cpuInfo[0]["cpu cores"])
-	if err != nil || metadata.CoresPerSocket == 0 {
-		err = fmt.Errorf("failed to retrieve cores per socket: %v", err)
-		return
-	}
-	// Socket Count (from cpuInfo)
-	var maxPhysicalID int
-	if maxPhysicalID, err = strconv.Atoi(cpuInfo[len(cpuInfo)-1]["physical id"]); err != nil {
-		err = fmt.Errorf("failed to retrieve max physical id: %v", err)
-		return
-	}
-	metadata.SocketCount = maxPhysicalID + 1
-	// Hyperthreading - threads per core (from cpuInfo)
-	if cpuInfo[0]["siblings"] != cpuInfo[0]["cpu cores"] {
-		metadata.ThreadsPerCore = 2
-	} else {
-		metadata.ThreadsPerCore = 1
-	}
+	fmt.Printf("DEBUG: Vendor ID: %q\n", metadata.Vendor)
 
-	// CPUSocketMap (from cpuInfo)
-	metadata.CPUSocketMap = createCPUSocketMap(metadata.CoresPerSocket, metadata.SocketCount, metadata.ThreadsPerCore == 2)
-	// Model Name (from cpuInfo)
-	metadata.ModelName = cpuInfo[0]["model name"]
-	// Vendor (from cpuInfo)
-	metadata.Vendor = cpuInfo[0]["vendor_id"]
-*/
+	/*
+		// Core Count (per socket) (from cpuInfo)
+		metadata.CoresPerSocket, err = strconv.Atoi(cpuInfo[0]["cpu cores"])
+		if err != nil || metadata.CoresPerSocket == 0 {
+			err = fmt.Errorf("failed to retrieve cores per socket: %v", err)
+			return
+		}
+		// Socket Count (from cpuInfo)
+		var maxPhysicalID int
+		if maxPhysicalID, err = strconv.Atoi(cpuInfo[len(cpuInfo)-1]["physical id"]); err != nil {
+			err = fmt.Errorf("failed to retrieve max physical id: %v", err)
+			return
+		}
+		metadata.SocketCount = maxPhysicalID + 1
+		// Hyperthreading - threads per core (from cpuInfo)
+		if cpuInfo[0]["siblings"] != cpuInfo[0]["cpu cores"] {
+			metadata.ThreadsPerCore = 2
+		} else {
+			metadata.ThreadsPerCore = 1
+		}
+
+		// CPUSocketMap (from cpuInfo)
+		metadata.CPUSocketMap = createCPUSocketMap(metadata.CoresPerSocket, metadata.SocketCount, metadata.ThreadsPerCore == 2)
+		// Model Name (from cpuInfo)
+		metadata.ModelName = cpuInfo[0]["model name"]
+		// Vendor (from cpuInfo)
+		metadata.Vendor = cpuInfo[0]["vendor_id"]
+	*/
 
 	cpuFamily := cpuData["Vendor ID"]
 	model := cpuData["Model"]

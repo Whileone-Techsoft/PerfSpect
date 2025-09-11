@@ -196,7 +196,7 @@ func init() {
 	Cmd.Flags().IntVar(&flagPerfPrintInterval, flagPerfPrintIntervalName, 5, "")
 	Cmd.Flags().IntVar(&flagPerfMuxInterval, flagPerfMuxIntervalName, 125, "")
 	Cmd.Flags().BoolVar(&flagNoRoot, flagNoRootName, false, "")
-	Cmd.Flags().BoolVar(&flagWriteEventsToFile, flagWriteEventsToFileName, false, "")
+	Cmd.Flags().BoolVar(&flagWriteEventsToFile, flagWriteEventsToFileName, true, "")
 	Cmd.Flags().StringVar(&flagInput, flagInputName, "", "")
 	Cmd.Flags().BoolVar(&flagNoSystemSummary, flagNoSystemSummaryName, false, "")
 	Cmd.Flags().BoolVar(&flagPrometheusServer, flagPrometheusServerName, false, "")
