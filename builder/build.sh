@@ -9,7 +9,7 @@ set -ex
 TAG=v1
 
 # build tools image
-docker build -f tools/build.Dockerfile --tag perfspect-tools:$TAG ./tools
+docker build --no-cache -f tools/build.Dockerfile --tag perfspect-tools:$TAG ./tools
 
 # build the perfspect builder image
 docker build -f builder/build.Dockerfile --build-arg TAG=$TAG --tag perfspect-builder:$TAG .
