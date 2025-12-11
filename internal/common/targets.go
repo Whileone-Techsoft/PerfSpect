@@ -406,6 +406,8 @@ func getHostArchitecture() (string, error) {
 		return "x86_64", nil
 	case "arm64":
 		return "aarch64", nil
+	case "riscv64":
+        	return "riscv64", nil
 	default:
 		slog.Error("unsupported architecture", slog.String("architecture", runtime.GOARCH))
 		err := fmt.Errorf("unsupported architecture: %s", runtime.GOARCH)

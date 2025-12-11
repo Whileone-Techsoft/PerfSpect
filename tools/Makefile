@@ -6,14 +6,16 @@
 
 NPROC := $(shell nproc)
 
-default: tools-x86_64
-.PHONY: default tools tools-aarch64 tools-x86_64 async-profiler avx-turbo cpuid dmidecode ethtool fio ipmitool lshw lspci msr-tools pcm perf-x86_64 processwatch spectre-meltdown-checker sshpass stackcollapse-perf stress-ng sysstat tsc turbostat
-
-tools-x86_64: async-profiler avx-turbo cpuid dmidecode ethtool fio ipmitool lshw lspci msr-tools pcm spectre-meltdown-checker sshpass stackcollapse-perf stress-ng sysstat tsc turbostat
+default: tools-riscv64
+.PHONY: default tools tools-aarch64 tools-x86_64 tools-riscv64 async-profiler avx-turbo cpuid dmidecode ethtool fio ipmitool lshw lspci msr-tools pcm perf-x86_64 processwatch spectre-meltdown-checker sshpass stackcollapse-perf stress-ng sysstat tsc turbostat
+tools-x86_64: async-profiler avx-turbo cpuid dmidecode ethtool fio ipmitool lshw lspci msr-tools spectre-meltdown-checker sshpass stackcollapse-perf stress-ng sysstat tsc
+ifeq ($(shell uname -m),x86_64)
+	make turbostat
+endif
 	mkdir -p bin/x86_64
 	cp -R async-profiler bin/x86_64/
-	cp avx-turbo/avx-turbo bin/x86_64/
-	cp cpuid/cpuid bin/x86_64/
+	#cp avx-turbo/avx-turbo bin/x86_64/
+	#cp cpuid/cpuid bin/x86_64/
 	cp dmidecode/dmidecode bin/x86_64/
 	cp ethtool/ethtool bin/x86_64/
 	cp fio/fio bin/x86_64/
@@ -24,8 +26,8 @@ tools-x86_64: async-profiler avx-turbo cpuid dmidecode ethtool fio ipmitool lshw
 	cp lspci/pci.ids.gz bin/x86_64/
 	cp msr-tools/rdmsr bin/x86_64/
 	cp msr-tools/wrmsr bin/x86_64/
-	cp pcm/build/bin/pcm-tpmi bin/x86_64/
-	cp pcm/scripts/bhs-power-mode.sh bin/x86_64/
+	#cp pcm/build/bin/pcm-tpmi bin/x86_64/
+	#cp pcm/scripts/bhs-power-mode.sh bin/x86_64/
 	cp perf-archive/perf-archive.sh bin/x86_64/perf-archive && chmod +rx bin/x86_64/perf-archive
 	cp spectre-meltdown-checker/spectre-meltdown-checker.sh bin/x86_64/
 	cp sshpass/sshpass bin/x86_64/
@@ -35,8 +37,10 @@ tools-x86_64: async-profiler avx-turbo cpuid dmidecode ethtool fio ipmitool lshw
 	cp sysstat/sar bin/x86_64/
 	cp sysstat/sadc bin/x86_64/
 	cp tsc/tsc bin/x86_64/
+ifeq ($(shell uname -m),x86_64)
 	cp linux_turbostat/tools/power/x86/turbostat/turbostat bin/x86_64/
-	-cd bin/x86_64 && strip --strip-unneeded *
+endif
+	cd bin/x86_64 && strip --strip-unneeded *
 
 tools-aarch64: async-profiler-aarch64 dmidecode-aarch64 ethtool-aarch64 fio-aarch64 ipmitool-aarch64 lshw-aarch64 lspci-aarch64 spectre-meltdown-checker sshpass-aarch64 stackcollapse-perf-aarch64 stress-ng-aarch64 sysstat-aarch64 tsc-aarch64
 	mkdir -p bin/aarch64
@@ -60,8 +64,34 @@ tools-aarch64: async-profiler-aarch64 dmidecode-aarch64 ethtool-aarch64 fio-aarc
 	cp tsc/tsc-aarch64 bin/aarch64/tsc
 	-cd bin/aarch64 && aarch64-linux-gnu-strip --strip-unneeded * || true
 
-tools: tools-x86_64 tools-aarch64
-	@echo "Tools built successfully in bin/x86_64 and bin/aarch64 directories."
+tools-riscv64:
+	@echo "=== Building PerfSpect tools for RISC-V ==="
+	mkdir -p bin/riscv64
+
+	@echo "Skipping async-profiler for RISC-V (not supported)"
+	@echo "Skipping dmidecode for RISC-V (not supported)"
+	@echo "Skipping ethtool for RISC-V (not supported)"
+	@echo "Skipping ipmitool for RISC-V (not supported)"
+	@echo "Skipping lshw for RISC-V (not supported)"
+	@echo "Skipping lspci for RISC-V (not supported)"
+
+	# Copy tools that exist (ignore missing ones)
+	@if [ -f fio/fio ]; then cp fio/fio bin/riscv64/ || true; fi
+	@if [ -f stackcollapse-perf/stackcollapse-perf ]; then cp stackcollapse-perf/stackcollapse-perf bin/riscv64/ || true; fi
+	@if [ -f stress-ng/stress-ng ]; then cp stress-ng/stress-ng bin/riscv64/ || true; fi
+	@if [ -f sysstat/mpstat ]; then cp sysstat/mpstat bin/riscv64/ || true; fi
+	@if [ -f sysstat/iostat ]; then cp sysstat/iostat bin/riscv64/ || true; fi
+	@if [ -f sysstat/sar ]; then cp sysstat/sar bin/riscv64/ || true; fi
+	@if [ -f sysstat/sadc ]; then cp sysstat/sadc bin/riscv64/ || true; fi
+	@if [ -f tsc/tsc ]; then cp tsc/tsc bin/riscv64/ || true; fi
+	@if [ -f sshpass/sshpass ]; then cp sshpass/sshpass bin/riscv64/ || true; fi
+	@if [ -f perf-archive/perf-archive.sh ]; then cp perf-archive/perf-archive.sh bin/riscv64/perf-archive && chmod +x bin/riscv64/perf-archive || true; fi
+	@if [ -f spectre-meltdown-checker/spectre-meltdown-checker.sh ]; then cp spectre-meltdown-checker/spectre-meltdown-checker.sh bin/riscv64/ || true; fi
+
+	@echo "=== RISC-V tools build complete ==="
+
+tools: tools-x86_64 tools-aarch64 tools-riscv64 
+	@echo "Tools built successfully in bin/x86_64 and bin/aarch64 and bin/riscv64 directories."
 
 ASYNC_PROFILER_VERSION := "4.0"
 async-profiler:
@@ -80,8 +110,12 @@ endif
 	tar -xf async-profiler-$(ASYNC_PROFILER_VERSION)-linux-arm64.tar.gz && mv async-profiler-$(ASYNC_PROFILER_VERSION)-linux-arm64 async-profiler-aarch64
 endif
 
+async-profiler-riscv64:
+	@echo "Skipping async-profiler for RISC-V (not supported)"
+
 AVX_TURBO_VERSION := "9cfe8bf"
 avx-turbo:
+ifeq ($(shell uname -m),x86_64)
 ifeq ("$(wildcard avx-turbo)","")
 	git clone https://github.com/travisdowns/avx-turbo.git
 else
@@ -92,10 +126,14 @@ endif
 	cd avx-turbo && git apply ../avx-turbo-patches/0001-use-fixed-CPU-number-to-determine-if-APERF-MPERF-are.patch
 	cd avx-turbo && git apply ../avx-turbo-patches/0001-Add-CPU-ID-pinning-option.patch
 	cd avx-turbo && make
+else
+	@echo "Skipping avx-turbo build on non-x86_64 architecture ($(shell uname -m))."
+endif
 
 # if you change the version, check the sed hacks below
 CPUID_VERSION := "20250513"
 cpuid:
+ifeq ($(shell uname -m),x86_64)
 ifeq ("$(wildcard cpuid)","")
 ifeq ("$(wildcard cpuid-$(CPUID_VERSION).src.tar.gz)","")
 	wget http://www.etallen.com/cpuid/cpuid-$(CPUID_VERSION).src.tar.gz
@@ -105,6 +143,9 @@ endif
 	# gcc 4.8 doesn't support -Wimplicit-fallthrough option
 	cd cpuid && sed -i s/"-Wimplicit-fallthrough"/""/ Makefile
 	cd cpuid && make
+else
+	@echo "Skipping cpuid build on non-x86_64 architecture ($(shell uname -m))."
+endif
 
 DMIDECODE_VERSION := "dmidecode-3-5"
 dmidecode:
@@ -124,6 +165,9 @@ else
 endif
 	cd dmidecode-aarch64 && git checkout $(DMIDECODE_VERSION)
 	cd dmidecode-aarch64 && CC=aarch64-linux-gnu-gcc make -j$(NPROC)
+
+dmidecode-riscv64:
+	@echo "Skipping dmidecode for RISC-V (not supported)"
 
 ETHTOOL_VERSION := "v6.5"
 ethtool:
@@ -149,6 +193,9 @@ ifeq ("$(wildcard ethtool-aarch64/Makefile)","")
 	cd ethtool-aarch64 && ./autogen.sh && ./configure --host aarch64-linux-gnu enable_netlink=no
 endif
 	cd ethtool-aarch64 && make -j$(NPROC)
+
+ethtool-riscv64:
+	@echo "Skipping ethtool for RISC-V (not supported)"
 
 FIO_VERSION := "fio-3.38"
 fio:
@@ -202,6 +249,9 @@ endif
 	cd ipmitool-aarch64 && CC=aarch64-linux-gnu-gcc make -j$(NPROC)
 	cd ipmitool-aarch64/src && ../libtool --silent --tag=CC --mode=link aarch64-linux-gnu-gcc -fno-strict-aliasing -Wreturn-type -all-static -o ipmitool.static ipmitool.o ipmishell.o ../lib/libipmitool.la plugins/libintf.la
 
+ipmitool-riscv64:
+	@echo "Skipping ipmitool for RISC-V (requires IPMI kernel support)"
+
 LSHW_VERSION := "B.02.19"
 lshw:
 ifeq ("$(wildcard lshw)","")
@@ -220,6 +270,9 @@ else
 endif
 	cd lshw-aarch64 && git checkout $(LSHW_VERSION)
 	cd lshw-aarch64/src && STRIP=aarch64-linux-gnu-strip CXX=aarch64-linux-gnu-g++ make static
+
+lshw-riscv64:
+	@echo "Skipping lshw for RISC-V (unsupported arch)"
 
 LSPCI_VERSION := "v3.13.0"
 lspci:
@@ -247,6 +300,9 @@ endif
 	cd lspci-aarch64 && ./update-pciids.sh
 	cd lspci-aarch64 && gzip -c pci.ids > pci.ids.gz
 
+lspci-riscv64:
+	@echo "Skipping lspci for RISC-V (depends on PCI subsystem)"
+
 MSR_TOOLS_VERSION := "master"
 msr-tools:
 ifeq ("$(wildcard msr-tools)","")
@@ -257,8 +313,12 @@ endif
 	cd msr-tools && git checkout $(MSR_TOOLS_VERSION) && git pull
 	cd msr-tools && ./autogen.sh && make
 
+msr-tools-riscv64:
+	@echo "Skipping msr-tools for RISC-V (x86 MSR only)"
+
 PCM_VERSION := "202502"
 pcm:
+ifeq ($(shell uname -m),x86_64)
 ifeq ("$(wildcard pcm)","")
 	git clone --recursive https://github.com/intel/pcm.git
 else
@@ -266,8 +326,15 @@ else
 endif
 	cd pcm && git checkout $(PCM_VERSION)
 	mkdir -p pcm/build
-	cd pcm/build &&	cmake -DNO_ASAN=1 ..
+	sed -i 's/-mno-omit-leaf-frame-pointer//g' pcm/CMakeLists.txt
+	cd pcm/build && cmake -DNO_ASAN=1 -DCMAKE_CXX_FLAGS="-fno-omit-frame-pointer" ..
 	cd pcm/build && cmake --build .
+else
+	@echo "Skipping PCM build — not supported on $(shell uname -m)"
+endif
+
+pcm-riscv64:
+	@echo "Skipping pcm for RISC-V (Intel Performance Counter Monitor, x86-only)"
 
 PERF_VERSION := "6.15.3"
 perf-x86_64:
@@ -288,8 +355,18 @@ endif
 	cp linux_perf-aarch64/tools/perf/perf bin/aarch64/
 	aarch64-linux-gnu-strip --strip-unneeded bin/aarch64/perf
 
-perf: perf-x86_64 perf-aarch64
-	@echo "Perf tools built successfully in bin/x86_64 and bin/aarch64 directories."
+perf-riscv64:
+ifeq ("$(wildcard perf-riscv64)","")
+		wget -N https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-$(PERF_VERSION).tar.xz
+		tar -xf linux-$(PERF_VERSION).tar.xz && mv linux-$(PERF_VERSION)/ linux_perf-riscv64/
+endif
+		cd linux_perf-riscv64/tools/perf && make LDFLAGS="-static --static" BUILD_BPF_SKEL=1 NO_JVMTI=1 ARCH=riscv NO_LIBTRACEEVENT=1 -j$(NPROC)
+		mkdir -p bin/riscv64
+		cp linux_perf-riscv64/tools/perf/perf bin/riscv64/
+		strip --strip-unneeded bin/riscv64/perf
+
+perf: perf-x86_64 perf-aarch64 perf-riscv64
+	@echo "Perf tools built successfully in bin/x86_64 and bin/aarch64 and bin/riscv64 directories."
 
 PROCESSWATCH_VERSION := "c394065"	
 processwatch:
@@ -312,6 +389,9 @@ else
 	cd spectre-meltdown-checker && git checkout master && git pull
 endif
 	cd spectre-meltdown-checker && git checkout $(SPECTRE_MELTDOWN_CHECKER_VERSION) && git pull
+
+spectre-meltdown-checker-riscv64:
+	@echo "Skipping spectre-meltdown-checker for RISC-V (x86-specific mitigations)"
 
 SSHPASS_VERSION := "1.10"
 sshpass:
@@ -392,30 +472,34 @@ tsc-aarch64:
 
 TURBOSTAT_VERSION := "6.9.12"
 turbostat:
+ifeq ($(shell uname -m),x86_64)
 	wget https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-$(TURBOSTAT_VERSION).tar.xz
 	tar -xf linux-$(TURBOSTAT_VERSION).tar.xz && mv linux-$(TURBOSTAT_VERSION)/ linux_turbostat/
 	sed -i '/_Static_assert/d' linux_turbostat/tools/power/x86/turbostat/turbostat.c
 	cd linux_turbostat/tools/power/x86/turbostat && make
+else
+	@echo "Skipping turbostat build (not x86_64 architecture)"
+endif
 
 reset:
-	cd async-profiler
-	cd cpuid && make clean
-	cd dmidecode && git clean -fdx && git reset --hard
-	cd ethtool && git clean -fdx && git reset --hard
-	cd fio && git clean -fdx && git reset --hard
-	cd ipmitool && git clean -fdx && git reset --hard
-	cd lshw && git clean -fdx && git reset --hard
-	cd lspci && git clean -fdx && git reset --hard
-	cd pcm && git clean -fdx && git reset --hard
-	cd msr-tools && git clean -fdx && git reset --hard
-	cd spectre-meltdown-checker
-	cd sshpass && make clean
-	cd stress-ng && git clean -fdx && git reset --hard
-	cd sysstat && git clean -fdx && git reset --hard
-	cd tsc && rm -f tsc
-	cd linux_turbostat/tools/power/x86/turbostat && make clean
+	@if [ -d async-profiler ]; then cd async-profiler && git clean -fdx && git reset --hard; else echo "Skipping async-profiler (not present)"; fi
+	@if [ -d cpuid ]; then cd cpuid && make clean; else echo "Skipping cpuid (not present)"; fi
+	@if [ -d dmidecode ]; then cd dmidecode && git clean -fdx && git reset --hard; else echo "Skipping dmidecode (not present)"; fi
+	@if [ -d ethtool ]; then cd ethtool && git clean -fdx && git reset --hard; else echo "Skipping ethtool (not present)"; fi
+	@if [ -d fio ]; then cd fio && git clean -fdx && git reset --hard; else echo "Skipping fio (not present)"; fi
+	@if [ -d ipmitool ]; then cd ipmitool && git clean -fdx && git reset --hard; else echo "Skipping ipmitool (not present)"; fi
+	@if [ -d lshw ]; then cd lshw && git clean -fdx && git reset --hard; else echo "Skipping lshw (not present)"; fi
+	@if [ -d lspci ]; then cd lspci && git clean -fdx && git reset --hard; else echo "Skipping lspci (not present)"; fi
+	@if [ -d pcm ]; then cd pcm && git clean -fdx && git reset --hard; else echo "Skipping pcm (not present)"; fi
+	@if [ -d msr-tools ]; then cd msr-tools && git clean -fdx && git reset --hard; else echo "Skipping msr-tools (not present)"; fi
+	@if [ -d spectre-meltdown-checker ]; then cd spectre-meltdown-checker && git clean -fdx && git reset --hard; else echo "Skipping spectre-meltdown-checker (not present)"; fi
+	@if [ -d sshpass ]; then cd sshpass && make clean; else echo "Skipping sshpass (not present)"; fi
+	@if [ -d stress-ng ]; then cd stress-ng && git clean -fdx && git reset --hard; else echo "Skipping stress-ng (not present)"; fi
+	@if [ -d sysstat ]; then cd sysstat && git clean -fdx && git reset --hard; else echo "Skipping sysstat (not present)"; fi
+	@if [ -d tsc ]; then cd tsc && rm -f tsc; else echo "Skipping tsc (not present)"; fi
+	@if [ -d linux_turbostat/tools/power/x86/turbostat ]; then cd linux_turbostat/tools/power/x86/turbostat && make clean; else echo "Skipping turbostat (not present)"; fi
 
-# not used in build but required in oss archive file because some of the tools are statically linked
+#not used in build but required in oss archive file because some of the tools are statically linked
 glibc-2.19.tar.bz2:
 	wget http://ftp.gnu.org/gnu/glibc/glibc-2.19.tar.bz2
 zlib.tar.gz:
@@ -425,5 +509,8 @@ libcrypt.tar.gz:
 libs: glibc-2.19.tar.bz2 zlib.tar.gz libcrypt.tar.gz
 
 oss-source: reset libs
-	tar --exclude-vcs -czf oss_source.tgz async-profiler/ cpuid/ dmidecode/ ethtool/ fio/ ipmitool/ lshw/ lspci/ msr-tools/ perf-archive/ pcm/ spectre-meltdown-checker/ sshpass/ stress-ng/ sysstat/ linux_turbostat/tools/power/x86/turbostat glibc-2.19.tar.bz2 zlib.tar.gz libcrypt.tar.gz
+	@dirs="async-profiler cpuid dmidecode ethtool fio ipmitool lshw lspci msr-tools perf-archive pcm spectre-meltdown-checker sshpass stress-ng sysstat linux_turbostat/tools/power/x86/turbostat"; \
+	existing_dirs=$$(for d in $$dirs; do [ -d $$d ] && echo $$d; done); \
+	echo "Packaging the following directories: $$existing_dirs"; \
+	tar --exclude-vcs -czf oss_source.tgz $$existing_dirs glibc-2.19.tar.bz2 zlib.tar.gz libcrypt.tar.gz; \
 	md5sum oss_source.tgz > oss_source.tgz.md5

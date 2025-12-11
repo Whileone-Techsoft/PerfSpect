@@ -1,0 +1,6 @@
+[
+	{
+	        "name": "IPC",
+	        "expression": "[instructions] / [cycles]"
+	}
+]

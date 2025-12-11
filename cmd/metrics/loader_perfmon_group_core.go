@@ -186,7 +186,7 @@ func (group *CoreGroup) AddEvent(event CoreEvent, reorder bool, metadata Metadat
 	}
 	// If the event is a perf metrics event, we handle it separately
 	if strings.HasPrefix(event.EventName, "PERF_METRICS.") {
-		if !metadata.SupportsFixedTMA {
+		if !metadata.GetSupportsFixedTMA() {
 			slog.Debug("PERF_METRICS events not supported", slog.String("event", event.EventName))
 			return fmt.Errorf("PERF_METRICS events not supported on target")
 		}
@@ -206,7 +206,7 @@ func (group *CoreGroup) AddEvent(event CoreEvent, reorder bool, metadata Metadat
 		return nil // PERF_METRICS events are always added to the fixed purpose counters
 	}
 	if event.EventName == "TOPDOWN.SLOTS:perf_metrics" {
-		if !metadata.SupportsFixedTMA {
+		if !metadata.GetSupportsFixedTMA() {
 			slog.Debug("TOPDOWN.SLOTS:perf_metrics event not supported", slog.String("event", event.EventName))
 			return fmt.Errorf("TOPDOWN.SLOTS:perf_metrics event not supported on target")
 		}

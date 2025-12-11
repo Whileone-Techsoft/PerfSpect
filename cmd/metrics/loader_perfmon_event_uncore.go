@@ -81,7 +81,7 @@ func (event UncoreEvent) IsEmpty() bool {
 }
 
 func (event UncoreEvent) IsCollectable(metadata Metadata) bool {
-	if !metadata.SupportsUncore {
+	if !metadata.GetSupportsUncore() {
 		slog.Debug("Uncore events not supported on target", slog.String("event", event.EventName))
 		return false // uncore events are not supported
 	}

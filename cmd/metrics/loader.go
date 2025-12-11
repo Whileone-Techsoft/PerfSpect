@@ -80,7 +80,12 @@ type ComponentLoader struct {
 }
 
 func NewLoader(uarch string) (Loader, error) {
-	switch strings.ToLower(uarch) {
+	uarchLower := strings.ToLower(uarch)
+	if strings.HasPrefix(uarchLower, "thead") {
+		slog.Debug("Detected RISC-V THEAD microarchitecture, using legacy loader", slog.String("uarch", uarch))
+		return newLegacyLoader("riscv64"), nil
+	}
+	switch uarchLower {
 	case "clx", "skx", "bdx", "bergamo", "genoa", "turin":
 		slog.Debug("Using legacy loader for microarchitecture", slog.String("uarch", uarch))
 		return newLegacyLoader(strings.ToLower(uarch)), nil
@@ -90,6 +95,9 @@ func NewLoader(uarch string) (Loader, error) {
 	case "neoverse-n2", "neoverse-v2", "neoverse-n1", "neoverse-v1":
 		slog.Debug("Using component loader for microarchitecture", slog.String("uarch", uarch))
 		return newComponentLoader(strings.ToLower(uarch)), nil
+	case "riscv64":
+        	slog.Debug("Using legacy loader for microarchitecture", slog.String("uarch", uarch))
+        	return newLegacyLoader(uarchLower), nil
 	default:
 		return nil, fmt.Errorf("unsupported microarchitecture: %s", uarch)
 	}

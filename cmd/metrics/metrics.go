@@ -1096,40 +1096,120 @@ func runCmd(cmd *cobra.Command, args []string) error {
 	// finalize the spinner status, capture any errors, and create output files
 	var exitErrs []error
 	allPrintedFileNames := make([][]string, 0)
+
 	for i, targetContext := range targetContexts {
-		if targetContext.err == nil {
+		    if targetContext.err == nil {
 			if !flagLive {
 				_ = multiSpinner.Status(targetContext.target.GetName(), "collection complete")
+				targetIP := targetContext.target.GetName()
+				sshUser := "root"
+				workloadCmd := "/home/beagle/stress-ng/stress-ng --cpu 4 --cpu-load 90 --timeout 10s"
+				cmdStr := fmt.Sprintf(`ssh %s@%s "/usr/local/bin/perf stat -x, -e cycles,instructions -- %s"`, sshUser, targetIP, workloadCmd)
+				outputBytes, err := exec.Command("bash", "-c", cmdStr).CombinedOutput()
+				output := string(outputBytes)
+			
+				if err != nil {
+					exitErrs = append(exitErrs, fmt.Errorf("failed to run perf on target %s: %w", targetContext.target.GetName(), err))
+					continue
+				 }
+				 
+				 var cycles, instructions uint64
+				 for _, line := range strings.Split(output, "\n") {
+					 line = strings.TrimSpace(line)
+					 if line == "" || strings.Contains(line, "<not supported>") {
+					 continue
+					}
+					fields := strings.Split(line, ",")
+					if len(fields) < 3 {
+						continue
+					}
+					valStr := strings.TrimSpace(fields[0])
+					valStr = strings.ReplaceAll(valStr, ",", "")
+					val, err := strconv.ParseUint(valStr, 10, 64)
+					if err != nil {
+						continue
+					}
+					metricName := strings.TrimSpace(fields[2])
+					switch metricName{
+					case "cycles":
+						 cycles = val
+					
+					 case "instructions":
+						instructions = val
+					}
+				}
+				// Compute IPC
+				var ipc float64 = 0.0
+				if cycles > 0 && instructions > 0 {
+					ipc = float64(instructions) / float64(cycles)
+				 }
 				csvMetricsFile := filepath.Join(localOutputDir, targetContext.target.GetName()+"_metrics.csv")
-				exists, _ := util.FileExists(csvMetricsFile)
-				if !exists {
-					_ = multiSpinner.Status(targetContext.target.GetName(), "no metrics collected")
+				f, err := os.Create(csvMetricsFile)
+				if err != nil {
+					exitErrs = append(exitErrs, fmt.Errorf("failed to create metrics CSV: %w", err))
+					continue
+				}
+				defer f.Close()
+
+				// Write CSV header and IPC value
+				f.WriteString("metric,value\n")
+				f.WriteString(fmt.Sprintf("cycles,%d\n", cycles))
+				f.WriteString(fmt.Sprintf("instructions,%d\n", instructions))
+				if ipc == 0.0 {
+					f.WriteString("IPC,unsupported_or_zero\n")
 				} else {
-					targetContext.metadata.PerfSpectVersion = appContext.Version
-					summaryFiles, err := summarizeMetrics(localOutputDir, targetContext.target.GetName(), targetContext.metadata, targetContext.metricDefinitions)
+					f.WriteString(fmt.Sprintf("IPC,%.4f\n", ipc))
+				}
+				targetContexts[i].printedFiles = append(targetContexts[i].printedFiles, csvMetricsFile)
+			    }
+			} else {
+				err := fmt.Errorf("failed to collect on target %s: %w", targetContext.target.GetName(), targetContext.err)
+				        exitErrs = append(exitErrs, err)
+			}
+	
+
+			// append printed files for this target
+			allPrintedFileNames = append(allPrintedFileNames, targetContexts[i].printedFiles)
+
+			// write metadata JSON if requested
+			    if flagWriteEventsToFile {
+				    if err := targetContext.metadata.WriteJSONToFile(filepath.Join(localOutputDir, targetContext.target.GetName()+"_metadata.json")); err != nil {
+					    err = fmt.Errorf("failed to write metadata to file: %w", err)
+					    exitErrs = append(exitErrs, err)
+				    }
+			    }
+			}
+
+				//if !exists {
+				//	_ = multiSpinner.Status(targetContext.target.GetName(), "no metrics collected")
+				//} else {
+			//		targetContext.metadata.PerfSpectVersion = appContext.Version
+			/**		summaryFiles, err := summarizeMetrics(localOutputDir, targetContext.target.GetName(), targetContext.metadata, targetContext.metricDefinitions)
 					if err != nil {
 						err = fmt.Errorf("failed to summarize metrics: %w", err)
 						exitErrs = append(exitErrs, err)
 					}
 					targetContexts[i].printedFiles = append(targetContexts[i].printedFiles, summaryFiles...)
 				}
-			}
-		} else {
-			err := fmt.Errorf("failed to collect on target %s: %w", targetContext.target.GetName(), targetContext.err)
-			exitErrs = append(exitErrs, err)
-		}
-		allPrintedFileNames = append(allPrintedFileNames, targetContexts[i].printedFiles)
+			}**/
+	 
+		 //else {
+		//	err := fmt.Errorf("failed to collect on target %s: %w", targetContext.target.GetName(), targetContext.err)
+		//	exitErrs = append(exitErrs, err)
+		//}
+		//allPrintedFileNames = append(allPrintedFileNames, targetContexts[i].printedFiles)
 		// write metadata to file
-		if flagWriteEventsToFile {
-			if err = targetContext.metadata.WriteJSONToFile(localOutputDir + "/" + targetContext.target.GetName() + "_" + "metadata.json"); err != nil {
-				err = fmt.Errorf("failed to write metadata to file: %w", err)
-				exitErrs = append(exitErrs, err)
-			}
-		}
-	}
+		//i/f flagWriteEventsToFile {
+		//	if err = targetContext.metadata.WriteJSONToFile(localOutputDir + "/" + targetContext.target.GetName() + "_" + "metadata.json"); err != nil {
+		//		err = fmt.Errorf("failed to write metadata to file: %w", err)
+		//		exitErrs = append(exitErrs, err)
+		//	}
+		//}
+//	}	
+	
 	if !flagLive && !flagPrometheusServer {
-		multiSpinner.Finish()
-		printOutputFileNames(allPrintedFileNames)
+           multiSpinner.Finish()
+	   printOutputFileNames(allPrintedFileNames)
 	}
 	// join the errors and print them
 	err = errors.Join(exitErrs...)

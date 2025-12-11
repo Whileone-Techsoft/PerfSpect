@@ -260,7 +260,7 @@ func loadPerfmonMetrics(reportMetrics []PerfspectMetric, perfmonMetrics []Perfmo
 	for _, metric := range reportMetrics {
 		var perfmonMetric *PerfmonMetric
 		var found bool
-		if !metadata.SupportsFixedTMA {
+		if !metadata.GetSupportsFixedTMA() {
 			perfmonMetric, found = findPerfmonMetric(alternateTMAMetrics, metric.MetricName)
 		}
 		if !found {

@@ -146,24 +146,42 @@ func (l *LegacyLoader) loadEventGroups(eventDefinitionOverridePath string, metad
 // isCollectableEvent confirms if given event can be collected on the platform
 func isCollectableEvent(event EventDefinition, metadata Metadata) bool {
 	// fixed-counter TMA
-	if !metadata.SupportsFixedTMA && (event.Name == "TOPDOWN.SLOTS" || strings.HasPrefix(event.Name, "PERF_METRICS.")) {
-		slog.Debug("Fixed counter TMA not supported on target", slog.String("event", event.Name))
-		return false
+	//if !metadata.SupportsFixedTMA && (event.Name == "TOPDOWN.SLOTS" || strings.HasPrefix(event.Name, "PERF_METRICS.")) {
+	//	slog.Debug("Fixed counter TMA not supported on target", slog.String("event", event.Name))
+	//	return false
+	//}
+
+	// New-Fixed-counter TMA
+	if !metadata.GetSupportsFixedTMA() && (event.Name == "TOPDOWN.SLOTS" || strings.HasPrefix(event.Name, "PERF_METRICS.")) {
+    		slog.Debug("Fixed counter TMA not supported on target", slog.String("event", event.Name))
+    		return false
 	}
 	// short-circuit for cpu events that aren't off-core response events
 	if event.Device == "cpu" && !(strings.HasPrefix(event.Name, "OCR") || strings.HasPrefix(event.Name, "OFFCORE_REQUESTS_OUTSTANDING")) {
 		return true
 	}
 	// off-core response events
+	//if event.Device == "cpu" && (strings.HasPrefix(event.Name, "OCR") || strings.HasPrefix(event.Name, "OFFCORE_REQUESTS_OUTSTANDING")) {
+	//	if !(metadata.SupportsOCR && metadata.SupportsUncore) {
+	//		slog.Debug("Off-core response events not supported on target", slog.String("event", event.Name))
+	//		return false
+	//	} else if flagScope == scopeProcess || flagScope == scopeCgroup {
+	//		slog.Debug("Off-core response events not supported in process or cgroup scope", slog.String("event", event.Name))
+	//		return false
+	//	}
+	//	return true
+	//}
+
 	if event.Device == "cpu" && (strings.HasPrefix(event.Name, "OCR") || strings.HasPrefix(event.Name, "OFFCORE_REQUESTS_OUTSTANDING")) {
-		if !(metadata.SupportsOCR && metadata.SupportsUncore) {
-			slog.Debug("Off-core response events not supported on target", slog.String("event", event.Name))
-			return false
-		} else if flagScope == scopeProcess || flagScope == scopeCgroup {
-			slog.Debug("Off-core response events not supported in process or cgroup scope", slog.String("event", event.Name))
-			return false
-		}
-		return true
+		if !(metadata.GetSupportsOCR() && metadata.GetSupportsUncore()) {
+        		slog.Debug("Off-core response events not supported on target", slog.String("event", event.Name))
+        		return false
+    		}
+    		if flagScope == scopeProcess || flagScope == scopeCgroup {
+        		slog.Debug("Off-core response events not supported in process or cgroup scope", slog.String("event", event.Name))
+        		return false
+    		}
+    		return true
 	}
 	// uncore events
 	// if using CPU granularity, don't collect uncore events
@@ -172,7 +190,7 @@ func isCollectableEvent(event EventDefinition, metadata Metadata) bool {
 		return false
 	}
 	// if uncore metrics not supported, don't collect uncore events
-	if !metadata.SupportsUncore && strings.HasPrefix(event.Name, "UNC") {
+	if !metadata.GetSupportsUncore() && strings.HasPrefix(event.Name, "UNC") {
 		slog.Debug("Uncore events not supported on target", slog.String("event", event.Name))
 		return false
 	}

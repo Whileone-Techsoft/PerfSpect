@@ -1,4 +1,7 @@
+//go:build riscv64
+// +build riscv64
 package metrics
+
 
 // Copyright (C) 2021-2025 Intel Corporation
 // SPDX-License-Identifier: BSD-3-Clause
@@ -39,6 +42,8 @@ type CommonMetadata struct {
 	PerfSupportedEvents       string
 	SystemSummaryFields       [][]string // slice of key-value pairs
 	SupportsInstructions      bool
+	SupportsOCR      	  bool
+	SupportsFixedTMA 	  bool
 }
 
 // X86Metadata -- x86_64 specific
@@ -60,6 +65,19 @@ type X86Metadata struct {
 // ARMMetadata -- aarch64 specific
 type ARMMetadata struct {
 	ARMSlots int
+	SupportsUncore bool
+    	SupportsOCR    bool
+    	SupportsFixedTMA bool
+}
+
+//RISCVMetadata -- riscv64 specific
+type RISCVMetadata struct{
+	ISA				string
+	SupportsCycleCounter		bool
+	SupportsInstret			bool
+	SupportsUncore			bool
+	SupportsHardwarePMU		bool
+	CPUFrequencyHz			int64
 }
 
 // Metadata -- representation of the platform's state and capabilities
@@ -67,6 +85,7 @@ type Metadata struct {
 	CommonMetadata
 	X86Metadata
 	ARMMetadata
+	RISCVMetadata
 	// below are not loaded by LoadMetadata, but are set by the caller (should these be here at all?)
 	CollectionStartTime time.Time
 	PerfSpectVersion    string
@@ -75,10 +94,14 @@ type Metadata struct {
 // LoadMetadata - populates and returns a Metadata structure containing state of the
 // system.
 func LoadMetadata(myTarget target.Target, noRoot bool, noSystemSummary bool, perfPath string, localTempDir string) (Metadata, error) {
+
 	uarch, err := myTarget.GetArchitecture()
 	if err != nil {
 		return Metadata{}, fmt.Errorf("failed to get target architecture: %v", err)
 	}
+	uarch = strings.ToLower(strings.TrimSpace(uarch))
+    	fmt.Printf("Detected architecture: '%s'\n", uarch)
+	
 	collector, err := NewMetadataCollector(uarch)
 	if err != nil {
 		return Metadata{}, fmt.Errorf("failed to create metadata collector: %v", err)
@@ -90,15 +113,64 @@ type MetadataCollector interface {
 	CollectMetadata(myTarget target.Target, noRoot bool, noSystemSummary bool, perfPath string, localTempDir string) (Metadata, error)
 }
 
-func NewMetadataCollector(architecture string) (MetadataCollector, error) {
-	switch architecture {
+
+/**func NewMetadataCollector(architecture string) (MetadataCollector, error) {
+	fmt.Printf("NewMetadataCollector received: %s\n", architecture)
+	arch := strings.ToLower(architecture)
+	switch arch {
 	case "x86_64":
 		return &X86MetadataCollector{}, nil
 	case "aarch64":
 		return &ARMMetadataCollector{}, nil
+	case "riscv64":
+        	return &RISCVMetadataCollector{}, nil
 	default:
 		return nil, fmt.Errorf("unsupported architecture: %s", architecture)
 	}
+}**/
+
+func NewMetadataCollector(architecture string) (MetadataCollector, error) {
+	 return &RISCVMetadataCollector{}, nil
+	}
+
+
+func (m Metadata) GetSupportsUncore() bool {
+    switch m.Architecture {
+    case "x86", "amd64":
+        return m.X86Metadata.SupportsUncore
+    case "arm64", "aarch64":
+        return m.ARMMetadata.SupportsUncore
+    case "riscv", "riscv64":
+        return m.RISCVMetadata.SupportsUncore
+    default:
+        return false
+    }
+}
+
+func (m Metadata) GetSupportsOCR() bool {
+    switch m.Architecture {
+    case "x86", "amd64":
+        return m.X86Metadata.SupportsOCR
+    case "arm64", "aarch64":
+        return m.ARMMetadata.SupportsOCR
+    case "riscv", "riscv64":
+        return false // no OCR on RISC-V
+    default:
+        return false
+    }
+}
+
+func (m Metadata) GetSupportsFixedTMA() bool {
+    switch m.Architecture {
+    case "x86", "amd64":
+        return m.X86Metadata.SupportsFixedTMA
+    case "arm64", "aarch64":
+        return false
+    case "riscv", "riscv64":
+        return false
+    default:
+        return false
+    }
 }
 
 // X86MetadataCollector handles Intel/AMD x86_64 metadata collection
@@ -107,6 +179,10 @@ type X86MetadataCollector struct {
 
 // ARMMetadataCollector handles ARM metadata collection
 type ARMMetadataCollector struct {
+}
+
+// RISCVMetadataCollector handles ARM metadata collection
+type RISCVMetadataCollector struct {
 }
 
 func (c *X86MetadataCollector) CollectMetadata(myTarget target.Target, noRoot bool, noSystemSummary bool, perfPath string, localTempDir string) (Metadata, error) {
@@ -201,14 +277,15 @@ func (c *X86MetadataCollector) CollectMetadata(myTarget target.Target, noRoot bo
 			slog.Warn("ref-cycles not supported", slog.String("output", output))
 		}
 	}
-	// Fixed-counter TMA events
-	if metadata.SupportsFixedTMA, output, err = getSupportsFixedTMA(scriptOutputs); err != nil {
-		slog.Warn("failed to determine if fixed-counter TMA is supported, assuming not supported", slog.String("error", err.Error()))
-	} else {
-		if !metadata.SupportsFixedTMA {
-			slog.Warn("Fixed-counter TMA events not supported", slog.String("output", output))
-		}
-	}
+	// Fixed-counter TMA eventsi
+	//metadata.SupportsFixedTMA, output, err = getSupportsFixedTMA(scriptOutputs)
+	//if err != nil {
+	//	slog.Warn("failed to determine if fixed-counter TMA is supported, assuming not supported", slog.String("error", err.Error()))
+	//} else {
+	//	if !metadata.SupportsFixedTMA{
+	//		slog.Warn("Fixed-counter TMA events not supported", slog.String("output", output))
+	//	}
+	//}
 	// Fixed-counter cycles events
 	if metadata.SupportsFixedCycles, output, err = getSupportsFixedEvent("cpu-cycles", scriptOutputs); err != nil {
 		slog.Warn("failed to determine if fixed-counter 'cpu-cycles' is supported, assuming not supported", slog.String("error", err.Error()))
@@ -242,13 +319,14 @@ func (c *X86MetadataCollector) CollectMetadata(myTarget target.Target, noRoot bo
 		}
 	}
 	// Offcore response
-	if metadata.SupportsOCR, output, err = getSupportsOCR(scriptOutputs); err != nil {
-		slog.Warn("failed to determine if 'OCR' is supported, assuming not supported", slog.String("error", err.Error()))
-	} else {
-		if !metadata.SupportsOCR {
-			slog.Warn("'OCR' events not supported", slog.String("output", output))
-		}
-	}
+	//metadata.SupportsOCR, output, err = getSupportsOCR(scriptOutputs)
+	//if err != nil {
+	//	slog.Warn("failed to determine if 'OCR' is supported, assuming not supported", slog.String("error", err.Error()))
+	//} else {
+	//	if !metadata.GetSupportsOCR() {
+	//		slog.Warn("'OCR' events not supported", slog.String("output", output))
+	//	}
+	//}
 	// Kernel Version
 	if metadata.KernelVersion, err = getKernelVersion(scriptOutputs); err != nil {
 		return Metadata{}, fmt.Errorf("failed to retrieve kernel version: %v", err)
@@ -266,14 +344,14 @@ func (c *X86MetadataCollector) CollectMetadata(myTarget target.Target, noRoot bo
 	} else {
 		for uncoreDeviceName := range metadata.UncoreDeviceIDs {
 			if !isAMDArchitecture && uncoreDeviceName == "cha" { // could be any uncore device
-				metadata.SupportsUncore = true
+				metadata.X86Metadata.SupportsUncore = true
 				break
 			} else if isAMDArchitecture && (uncoreDeviceName == "l3" || uncoreDeviceName == "df") { // could be any uncore device
-				metadata.SupportsUncore = true
+				metadata.X86Metadata.SupportsUncore = true
 				break
 			}
 		}
-		if !metadata.SupportsUncore {
+		if !metadata.X86Metadata.SupportsUncore {
 			slog.Warn("Uncore devices not supported")
 		}
 	}
@@ -352,7 +430,7 @@ func (c *ARMMetadataCollector) CollectMetadata(myTarget target.Target, noRoot bo
 	if !noSystemSummary {
 		if metadata.SystemSummaryFields, err = getSystemSummary(scriptOutputs); err != nil {
 			return Metadata{}, fmt.Errorf("failed to get system summary: %w", err)
-		}
+	}
 	} else {
 		metadata.SystemSummaryFields = [][]string{{"", "System Info Not Available"}}
 	}
@@ -388,6 +466,76 @@ func (c *ARMMetadataCollector) CollectMetadata(myTarget target.Target, noRoot bo
 		}
 	}
 	return metadata, nil
+}
+
+func countProcessors(info []map[string]string) int {
+        return len(info)
+}
+/**func detectSocketCount(info []map[string]string) int {
+        // RISC-V typically has no "physical id"
+        return 1
+}
+func createCPUSocketMapRISC(info []map[string]string) map[int]int {
+        m := make(map[int]int)
+        for i := range info {
+                m[i] = 0 // all CPUs belong to socket 0
+        }
+        return m
+}**/
+
+//fmt.Println("Cores per socket:", countProcessors(cpuInfo))
+
+func (c *RISCVMetadataCollector) CollectMetadata(myTarget target.Target, noRoot bool, noSystemSummary bool, perfPath string, localTempDir string) (Metadata, error) {
+	//var err error
+	metadata := Metadata{}
+	metadata.CommonMetadata.SupportsOCR = false
+	metadata.CommonMetadata.SupportsFixedTMA = false
+	//fmt.Println("DEBUG: cpuInfo length =", len(info))
+    	//fmt.Println("DEBUG: Cores per socket =", countProcessors(info))
+	//metadata.CommonMetadata.Architecture = "riscv64"
+	//metadata.CommonMetadata.Microarchitecture = "RISCV64"
+	//metadata.CommonMetadata.Vendor = "generic"
+	metadata.CommonMetadata.SupportsInstructions = true
+	// Hostname
+        metadata.CommonMetadata.Hostname = myTarget.GetName()
+        // Try to get lscpu output
+	lscpuOut, err := getLscpu(myTarget)
+	if err != nil {
+		fmt.Printf("Warning: failed to get lscpu info: %v\n", err)
+	} else {
+	    arch, err := parseLscpuStringField(lscpuOut, `Architecture:\s+(\S+)`)
+	    if err == nil {
+		    metadata.CommonMetadata.Architecture = arch
+		}
+	}
+	// Attempt to parse /proc/cpuinfo for more details (like uarch and vendor)
+	cpuInfo, err := getCPUInfo(myTarget)
+	if err == nil && len(cpuInfo) > 0 {
+		cpu0 := cpuInfo[0]
+
+		if uarch, ok := cpu0["uarch"]; ok {
+			metadata.CommonMetadata.Microarchitecture = uarch
+		}
+
+		if mvendor, ok := cpu0["mvendorid"]; ok {
+			metadata.CommonMetadata.Vendor = decodeRISCVVendor(mvendor)
+		}
+
+	}
+	return metadata, nil					               
+
+}
+
+// Helper: decode RISC-V vendor IDs
+func decodeRISCVVendor(id string) string {
+	switch id {
+	case "0x5b7":
+		return "thead"
+	case "0x489":
+		return "sifive"
+	default:
+		return "generic"
+	}
 }
 
 func getMetadataScripts(noRoot bool, perfPath string, noSystemSummary bool, numGPCounters int) (metadataScripts []script.ScriptDefinition, err error) {
@@ -593,12 +741,12 @@ func getSystemSummary(scriptOutputs map[string]script.ScriptOutput) (summaryFiel
 
 // getArchitecture - retrieves the architecture from the target
 func getArchitecture(scriptOutputs map[string]script.ScriptOutput) (arch string, err error) {
-	if scriptOutputs["get architecture"].Exitcode != 0 {
-		err = fmt.Errorf("failed to retrieve architecture: %s", scriptOutputs["get architecture"].Stderr)
-		return
-	}
-	arch = strings.TrimSpace(scriptOutputs["get architecture"].Stdout)
-	return
+	//if scriptOutputs["get architecture"].Exitcode != 0 {
+	//	err = fmt.Errorf("failed to retrieve architecture: %s", scriptOutputs["get architecture"].Stderr)
+	//	return
+	//}
+	//arch = strings.TrimSpace(scriptOutputs["get architecture"].Stdout)
+	return "riscv64", nil
 }
 
 // getUncoreDeviceIDs - returns a map of device type to list of device indices
